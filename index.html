@@ -34,7 +34,7 @@ body{
 .w-trophy{font-size:clamp(6rem,22vw,10rem);animation:wpop .8s cubic-bezier(.34,1.56,.64,1) both;filter:drop-shadow(0 0 50px gold);}
 @keyframes wpop{from{transform:scale(0) rotate(-25deg);opacity:0}75%{transform:scale(1.18) rotate(8deg)}to{transform:scale(1) rotate(0);opacity:1}}
 .w-title{font-family:'Cinzel Decorative',cursive;font-size:clamp(1.6rem,6vw,2.8rem);font-weight:900;color:#f5c030;text-shadow:0 0 24px rgba(245,192,48,.8);margin:14px 0 4px;animation:fup .5s .35s both;}
-.w-sub{font-size:.75rem;letter-spacing:.25em;color:#20d4b8;margin-bottom:28px;animation:fup .5s .5s both;text-transform:uppercase;}
+.w-sub{font-size:.75rem;letter-spacing:.25em;color:#f5c030;margin-bottom:28px;animation:fup .5s .5s both;text-transform:uppercase;}
 .w-runes{display:flex;gap:12px;margin-bottom:32px;animation:fup .5s .4s both;}
 .w-rune{width:54px;height:54px;border-radius:11px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;animation:runeReveal .5s calc(.6s + var(--i)*.12s) both;}
 @keyframes runeReveal{from{transform:scale(0) rotate(-15deg);opacity:0}75%{transform:scale(1.2)}to{transform:scale(1);opacity:1}}
@@ -63,23 +63,41 @@ body{
 /* rs-e removed from rune bar, kept for win screen only */
 .rs .rs-s{font-family:'Cinzel Decorative',cursive;font-size:clamp(.65rem,.9em,.85rem);font-weight:700;color:rgba(232,216,184,.18);transition:all .4s;line-height:1;}
 .rs.earned .rs-s{color:var(--c,#f5a623);}
-.rs.boss-now{animation:bnow 1.2s ease-in-out infinite;border-color:var(--bnow-col,#20d4b8) !important;}
-@keyframes bnow{0%,100%{box-shadow:0 0 10px color-mix(in srgb,var(--bnow-col,#20d4b8) 50%,transparent)}50%{box-shadow:0 0 30px color-mix(in srgb,var(--bnow-col,#20d4b8) 90%,transparent),0 0 55px color-mix(in srgb,var(--bnow-col,#20d4b8) 25%,transparent)}}
+.rs.boss-now{animation:bnow 1.2s ease-in-out infinite;border-color:var(--bnow-col,#f5c030) !important;}
+@keyframes bnow{0%,100%{box-shadow:0 0 10px color-mix(in srgb,var(--bnow-col,#f5c030) 50%,transparent)}50%{box-shadow:0 0 30px color-mix(in srgb,var(--bnow-col,#f5c030) 90%,transparent),0 0 55px color-mix(in srgb,var(--bnow-col,#f5c030) 25%,transparent)}}
 .rs.boss-done{border-color:var(--c,#f5a623) !important;box-shadow:0 0 18px color-mix(in srgb,var(--c,#f5a623) 60%,transparent) !important;opacity:.7;}
 
 /* ── DUNGEON VIEWPORT ── */
 #dungeon{flex:1;min-height:0;width:100%;position:relative;overflow:hidden;cursor:pointer;background:#1a0e06;}
-#dc{width:100%;height:100%;display:block;}
+#cast-glow{width:100%;height:0;position:relative;pointer-events:none;z-index:25;margin-top:0;flex-shrink:0;transition:box-shadow .2s, opacity .2s;opacity:0;}
+@keyframes glowPulse{0%,100%{box-shadow:0 0 50px 25px rgba(255,180,40,.4),0 0 100px 50px rgba(255,100,0,.2);}50%{box-shadow:0 0 80px 40px rgba(255,200,60,.65),0 0 160px 80px rgba(255,120,0,.35);}}
+#cast-glow.active{opacity:1;box-shadow:0 0 60px 30px rgba(255,180,40,.5),0 0 120px 60px rgba(255,100,0,.25);animation:glowPulse .6s ease-in-out infinite;}
+
 
 /* creature */
 #creature-layer{position:absolute;inset:0;pointer-events:none;}
 #cre{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:clamp(120px,32vw,200px);height:auto;line-height:1;opacity:0;transition:opacity .3s;}
 .cre-float{animation:cfloat 2.6s ease-in-out infinite;}
 @keyframes cfloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
-.cre-taunt{animation:ctaunt .55s ease-in-out!important;}
-@keyframes ctaunt{0%,100%{transform:translateX(0)}20%{transform:translateX(-14px) rotate(-7deg)}40%{transform:translateX(14px) rotate(7deg)}60%{transform:translateX(-8px) rotate(-4deg)}80%{transform:translateX(8px) rotate(4deg)}}
+.cre-taunt{animation:ctaunt .7s ease-in-out!important;}
+@keyframes ctaunt{
+  0%  {transform:translate(-50%,-50%) scale(1)}
+  25% {transform:translate(-50%,-58%) scale(1.35) rotate(-4deg)}
+  50% {transform:translate(-50%,-54%) scale(1.4)  rotate(4deg)}
+  75% {transform:translate(-50%,-56%) scale(1.32) rotate(-2deg)}
+  100%{transform:translate(-50%,-50%) scale(1)}
+}
 .cre-die{animation:cdie .8s ease-out forwards!important;}
-@keyframes cdie{0%{transform:scale(1);opacity:1}25%{transform:scale(1.35) rotate(12deg);filter:brightness(3) drop-shadow(0 0 24px orange)}60%{transform:scale(.5) rotate(-22deg);opacity:.4}100%{transform:scale(0) rotate(35deg);opacity:0}}
+@keyframes cdie{0%{transform:translate(-50%,-50%) scale(1);opacity:1}25%{transform:translate(-50%,-50%) scale(1.35) rotate(12deg);filter:brightness(3) drop-shadow(0 0 24px orange)}60%{transform:translate(-50%,-50%) scale(.5) rotate(-22deg);opacity:.4}100%{transform:translate(-50%,-50%) scale(0) rotate(35deg);opacity:0}}
+
+.cre-hit{animation:chit .45s ease-out!important;}
+@keyframes chit{
+  0%  {transform:translate(-50%,-50%) scale(1)}
+  15% {transform:translate(-50%,-62%) scale(1.18) rotate(-5deg); filter:brightness(2.5) drop-shadow(0 0 20px #fff)}
+  35% {transform:translate(-48%,-48%) scale(.92) rotate(3deg);   filter:brightness(1.8) drop-shadow(0 0 12px #ffaa00)}
+  55% {transform:translate(-52%,-54%) scale(1.06) rotate(-2deg); filter:brightness(1.4)}
+  100%{transform:translate(-50%,-50%) scale(1);                  filter:none}
+}
 
 /* ── BOSS ENTRY ── */
 /* Boss intro overlay - full screen dramatic */
@@ -230,7 +248,7 @@ body{
 @keyframes syaglow{0%,100%{box-shadow:0 0 8px rgba(255,255,255,.2)}50%{box-shadow:0 0 20px rgba(255,255,255,.5),0 0 40px rgba(255,255,255,.1)}}
 .sy.active .sy-l{color:rgba(255,255,255,.9);}
 .sy.solved{border-color:var(--rc,#f5a623);background:color-mix(in srgb,var(--rc,#f5a623) 12%,transparent);box-shadow:0 0 14px color-mix(in srgb,var(--rc,#f5a623) 55%,transparent);}
-.sy.sy-solving{border-color:white;background:rgba(255,255,255,.35);box-shadow:0 0 24px rgba(255,255,255,.8);transform:scale(1.12);transition:none;}
+.sy.sy-solving{border-color:white;background:rgba(255,255,255,.4);box-shadow:0 0 32px rgba(255,255,255,.95),0 0 60px rgba(255,255,255,.4);transform:scale(1.18);transition:none;}
 .sy.wrong-flash{animation:wrongflash .45s ease-out forwards;}
 @keyframes wrongflash{0%{border-color:#ff3a55;background:rgba(255,58,85,.35);transform:scale(1.08)}50%{border-color:#ff3a55;background:rgba(255,58,85,.15)}100%{border-color:rgba(255,255,255,.55);background:rgba(255,255,255,.06);transform:scale(1)}}
 .sy-l{font-family:'Cinzel Decorative',cursive;font-size:clamp(.9rem,3vw,1.25rem);font-weight:700;color:#ddd4bb;transition:color .3s;}
@@ -242,6 +260,19 @@ body{
 
 #cast-btn{width:100%;min-height:62px;border:none;border-radius:14px;cursor:pointer;background:linear-gradient(135deg,#7a3800,#cc6200,#ff8c00);box-shadow:0 0 22px rgba(200,100,0,.5),0 5px 22px rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;gap:10px;font-size:1.9rem;position:relative;overflow:hidden;transition:all .2s;}
 #cast-btn:active{transform:scale(.97);}
+#cast-btn.recording{transform:scale(.98);box-shadow:0 0 40px rgba(255,160,0,.9),0 0 80px rgba(255,100,0,.4),0 5px 22px rgba(0,0,0,.5);background:linear-gradient(135deg,#7a3800,#cc6200,#ff8c00);}
+#spell-particles{position:absolute;inset:0;pointer-events:none;overflow:visible;border-radius:14px;}
+.sp{position:absolute;border-radius:50%;pointer-events:none;animation:spOrbit linear infinite;}
+@keyframes spOrbit{
+  0%  {transform:rotate(var(--a)) translateX(var(--r)) scale(1);   opacity:.9;}
+  50% {transform:rotate(calc(var(--a) + 180deg)) translateX(var(--r)) scale(.6); opacity:.5;}
+  100%{transform:rotate(calc(var(--a) + 360deg)) translateX(var(--r)) scale(1);  opacity:.9;}
+}
+@keyframes wandPulse{
+  0%,100%{transform:scale(1);}
+  50%{transform:scale(1.3) rotate(15deg);}
+}
+#cast-btn.recording #btn-icon{animation:wandPulse .4s ease-in-out infinite;}
 #cast-btn:disabled{opacity:.28;pointer-events:none;}
 #cast-btn::before{content:'';position:absolute;top:-60%;left:-70%;width:45%;height:220%;background:rgba(255,255,255,.07);transform:skewX(-20deg);animation:cshine 5s ease-in-out infinite;}
 @keyframes cshine{0%,65%,100%{left:-70%}35%{left:130%}}
@@ -370,7 +401,10 @@ body{
     <div class="set-divider"></div>
 
     <div class="set-row">
-      <div class="set-row-label">🎙 Spracherkennung</div>
+      <div style="display:flex;flex-direction:column;gap:3px;">
+        <div class="set-row-label">🎙 Spracherkennung</div>
+        <div id="mic-status-label" style="font-size:.58rem;letter-spacing:.04em;"></div>
+      </div>
       <label class="set-toggle">
         <input type="checkbox" id="set-mic-toggle" onchange="settingsMicToggle(this.checked)"/>
         <div class="set-toggle-track"></div>
@@ -405,7 +439,7 @@ body{
 <div class="screen" id="s-game">
 <div id="game-wrap">
   <div id="hud">
-    <div id="mic-btn" onclick="toggleMic()"><span id="mic-icon">🎙</span></div>
+    <div id="mic-btn"><span id="mic-icon">🎙</span></div>
     <div id="exit-btn" onclick="exitDungeon()">✕</div>
   </div>
   <div id="rune-bar"></div>
@@ -414,9 +448,11 @@ body{
     <!-- SVG + creature-layer + nav-arrows injected by draw() -->
   </div>
 
+  <div id="cast-glow"></div>
   <div id="spell-panel">
     <div id="syl-row"></div>
-    <button id="cast-btn" onclick="handleCast()">
+    <button id="cast-btn" onpointerdown="castPressStart()" onpointerup="castPressEnd()" onpointercancel="castPressEnd()">
+      <div id="spell-particles"></div>
       <span id="btn-icon">🪄</span>
       <div id="mbars">
         <div class="mb" style="--d:.35s"></div>
@@ -1026,7 +1062,7 @@ function buildSylPool(){
 
 function openSettings(){
   renderSettingsChips();
-  document.getElementById('set-mic-toggle').checked = activeSettings.mic;
+  updateMicUI();
   document.getElementById('settings-overlay').classList.add('open');
 }
 function closeSettings(){
@@ -1095,11 +1131,12 @@ function renderChipGroup(containerId, all, active, onToggle){
 function settingsMicToggle(on){
   activeSettings.mic = on;
   if(on){
-    noMic=false;
-    if(typeof SR!=='undefined'&&SR) initSpeechIfEnabled();
+    initSpeech(); // sets MIC_STATE='ready' or 'unavailable'
   } else {
-    enableNoMic();
+    MIC_STATE='off';
+    updateMicUI();
   }
+  saveSettings();
 }
 
 // Monster colors palette - each encounter gets a unique color
@@ -1113,11 +1150,14 @@ let ENC = [];
 
 function generateENC() {
   // Pick 5 unique syllables at random
-  const pool = buildSylPool(); if(pool.length<5){alert('Bitte mehr Konsonanten/Vokale auswählen!');return;}
+  const pool = buildSylPool();
+  if(pool.length===0){ return; } // nothing to do
   const chosen = [];
+  // Fill 5 slots — allow repeats if pool is smaller than 5
+  const fullPool = buildSylPool();
   while(chosen.length < 5) {
-    const idx = Math.floor(Math.random() * pool.length);
-    chosen.push(pool.splice(idx, 1)[0]);
+    const idx = Math.floor(Math.random() * fullPool.length);
+    chosen.push(fullPool[idx]);
   }
   // Pick 5 random unique monsters
   const mPool = [...MONSTERS];
@@ -1157,7 +1197,14 @@ let step   = 0;        // steps taken since last encounter (0-2)
 let spellLives   = 3;  // lives per spell attempt
 let sylProgress  = 0;  // how many syls solved in current spell
 let activeSpell  = []; // syllables to say this spell
-let noMic=true, speechOk=false, listening=false, rec=null; // mic off by default
+// Speech state — single source of truth
+// 'unavailable': browser has no SR or permission denied
+// 'off':         user disabled in settings
+// 'ready':       initialised and active
+var MIC_STATE = 'off'; // default off
+var listening = false, rec = null;
+// Legacy aliases so existing code still works
+// MIC_STATE is the single source of truth ('off'|'ready'|'unavailable')
 let currentRoom  = RT.HALL;
 let hasFork      = false; // current room has left/right choice
 let animating    = false;
@@ -2000,18 +2047,88 @@ function unlockSyl(idx, col){
 }
 
 // ── Cast ──
-function handleCast(){
-  if(!noMic&&speechOk){
-    if(listening)return;
-    // Recreate each time — required on iOS Safari
-    initSpeech();
-    lastInterim=[];
-    document.getElementById('cast-btn').disabled=true;
-    try{rec.start();}catch(e){document.getElementById('cast-btn').disabled=false;onCorrect();}
-  } else {
-    onCorrect();
+// Tap mode: 20% chance of wrong per attempt
+
+var SPELL_COLORS=['#ffd700','#ff8c00','#ffaa00','#fff4aa','#ff6600','#ffffaa'];
+
+function startSpellParticles(){
+  var gl=document.getElementById('cast-glow');
+  if(gl) gl.classList.add('active');
+  var el=document.getElementById('spell-particles');
+  if(!el) return;
+  el.innerHTML='';
+  for(var i=0;i<8;i++){
+    var sp=document.createElement('div');
+    sp.className='sp';
+    var size=4+Math.random()*6;
+    var radius=28+Math.random()*22;
+    var angle=i*(360/8);
+    var dur=0.6+Math.random()*0.5;
+    var col=SPELL_COLORS[Math.floor(Math.random()*SPELL_COLORS.length)];
+    sp.style.cssText='width:'+size+'px;height:'+size+'px;background:'+col+
+      ';left:50%;top:50%;margin-left:'+(-size/2)+'px;margin-top:'+(-size/2)+'px;'+
+      '--a:'+angle+'deg;--r:'+radius+'px;animation-duration:'+dur+'s;'+
+      'box-shadow:0 0 '+size+'px '+col+';';
+    el.appendChild(sp);
   }
 }
+
+function stopSpellParticles(){
+  var gl=document.getElementById('cast-glow');
+  if(gl) gl.classList.remove('active');
+  var el=document.getElementById('spell-particles');
+  if(el) el.innerHTML='';
+}
+
+function castPressStart(){
+  var btn=document.getElementById('cast-btn');
+  if(btn.disabled) return;
+  btn.classList.add('recording');
+  startSpellParticles();
+  if(MIC_STATE==='ready'){
+    if(listening) return;
+    initSpeech();
+    lastInterim=[];
+    btn.disabled=true;
+    try{ rec.start(); }
+    catch(e){ btn.disabled=false; btn.classList.remove('recording'); tapResolve(); }
+  }
+  // Tap mode: resolve on release (castPressEnd)
+}
+
+function castPressEnd(){
+  var btn=document.getElementById('cast-btn');
+  btn.classList.remove('recording');
+  stopSpellParticles();
+  // Release burst — quick bright flash on the glow
+  castReleaseBurst();
+  if(MIC_STATE==='ready' && listening){
+    try{ rec.stop(); }catch(e){}
+    return;
+  }
+  if(MIC_STATE!=='ready' && !btn.disabled){
+    tapResolve();
+  }
+}
+
+function castReleaseBurst(){
+  var gl=document.getElementById('cast-glow');
+  if(!gl) return;
+  // Brief intense flash then fade
+  gl.style.transition='none';
+  gl.style.boxShadow='0 0 120px 60px rgba(255,220,80,.85), 0 0 200px 100px rgba(255,140,0,.5)';
+  gl.style.opacity='1';
+  setTimeout(function(){
+    gl.style.transition='box-shadow .4s ease-out, opacity .4s ease-out';
+    gl.style.boxShadow='';
+    gl.style.opacity='0';
+  }, 60);
+}
+
+function tapResolve(){
+  Math.random() < 0.20 ? onWrong() : onCorrect();
+}
+
 
 function checkSpeech(alts){
   const flat=activeSpell.slice(0,sylProgress+1).join('').toUpperCase();
@@ -2031,14 +2148,33 @@ function onCorrect(){
   if(!sl) return;
   // Brief white flash, then snap to solved (rune color)
   sl.className='sy sy-solving';void sl.offsetWidth;
-  setTimeout(()=>{ const _sl=document.getElementById('sy-'+( sylProgress-0));if(_sl)_sl.className='sy solved'; },180);
+  const _solvedIdx=sylProgress; // capture before increment
+  setTimeout(()=>{
+    const _sl=document.getElementById('sy-'+_solvedIdx);
+    if(_sl){
+      const _rc=_sl.dataset.col||_sl.style.getPropertyValue('--rc')||'#f5a623';
+      _sl.className='sy solved';
+      // Set inline styles directly — more reliable than CSS vars on mobile
+      _sl.style.setProperty('--rc', _rc);
+      _sl.style.borderColor=_rc;
+      _sl.style.background='';
+      _sl.style.boxShadow='0 0 32px '+_rc+', 0 0 64px '+_rc+'88';
+      const _lb=_sl.querySelector('.sy-l');
+      if(_lb) _lb.style.color=_rc;
+      setTimeout(()=>{if(_sl) _sl.style.boxShadow='0 0 14px '+_rc+'88';},400);
+    }
+  },180);
   if(sylProgress>0){const d=document.getElementById('syd-'+sylProgress);if(d)d.classList.add('lit');}
   spawnSparks(sl);
   doFlash('teal');
+  // Monster gets hit — bump animation
+  const cre=document.getElementById('cre');
+  if(cre){ cre.style.animation='none'; void cre.offsetWidth; cre.className='cre-hit';
+    setTimeout(()=>{ const c2=document.getElementById('cre'); if(c2&&c2.className==='cre-hit') c2.className=''; },460); }
   if(gPhase==='boss')updateBossRunes(sylProgress+1);
   sylProgress++;
   if(sylProgress>=activeSpell.length){
-    setTimeout(()=>{ if(gPhase==='encounter')finishEncounter();else finishBoss(); },380);
+    setTimeout(()=>{ if(gPhase==='encounter')finishEncounter();else finishBoss(); },200);
   } else {
     const nextCol=gPhase==='boss'?ENC[sylProgress].col:currentRuneCol;
     setTimeout(()=>{unlockSyl(sylProgress,nextCol);document.getElementById('cast-btn').disabled=false;},300);
@@ -2080,7 +2216,7 @@ function finishEncounter(){
 function finishBoss(){
   const c0=document.getElementById('cre');if(c0)c0.className='';
   for(let i=0;i<5;i++){const sl=document.getElementById('rs-'+i);if(sl){sl.classList.remove('boss-now');sl.classList.add('boss-done');}}
-  setTimeout(showWin,800);
+  setTimeout(showWin,400);
 }
 
 // ── Win ──
@@ -2124,7 +2260,7 @@ function doFlash(t){const f=document.getElementById('flash-overlay');f.className
 function spawnSparks(el){
   if(!el)return;
   const r=el.getBoundingClientRect();const cx=r.left+r.width/2,cy=r.top+r.height/2;
-  const cols=['#20d4b8','#f5c030','#fff','#aaffee','#ffee66'];
+  const cols=['#f5c030','#f5c030','#fff','#aaffee','#ffee66'];
   for(let i=0;i<12;i++){
     const sp=document.createElement('div');sp.className='spark';
     const sz=Math.random()*6+3,angle=(Math.PI*2/12)*i+Math.random()*.4,dist=32+Math.random()*44;
@@ -2134,7 +2270,7 @@ function spawnSparks(el){
 }
 
 function spawnConfetti(){
-  const cols=['#f5c030','#ff6b9d','#54a0ff','#3ddc84','#ff9f43','#cc88ff','#20d4b8'];
+  const cols=['#f5c030','#ff6b9d','#54a0ff','#3ddc84','#ff9f43','#cc88ff','#f5c030'];
   for(let i=0;i<90;i++){
     const el=document.createElement('div');el.className='confetti';
     const w=Math.random()*10+4,h=Math.random()*10+4;
@@ -2153,7 +2289,8 @@ function initSpeechIfEnabled(){
 function initSpeech(){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(!SR){enableNoMic();return;}
-  speechOk=true;
+  MIC_STATE='ready';
+  updateMicUI();
   var isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent);
 
   function makeRec(){
@@ -2193,6 +2330,7 @@ function initSpeech(){
         lastInterim=candidates;
         return;
       }
+      document.getElementById("cast-btn").classList.remove("recording");
       checkSpeech(candidates.length?candidates:(lastInterim||[]));
       lastInterim=[];
     };
@@ -2201,7 +2339,7 @@ function initSpeech(){
       clearTimeout(iosTimeout);
       listening=false;
       document.getElementById('mbars').classList.remove('on');
-      document.getElementById('cast-btn').disabled=false;
+      var _cb=document.getElementById('cast-btn');if(_cb){_cb.disabled=false;_cb.classList.remove('recording');}
       if(e.error==='not-allowed'||e.error==='service-not-allowed'){
         enableNoMic();
       } else if(e.error==='no-speech'||e.error==='audio-capture'){
@@ -2215,7 +2353,7 @@ function initSpeech(){
       clearTimeout(iosTimeout);
       listening=false;
       document.getElementById('mbars').classList.remove('on');
-      document.getElementById('cast-btn').disabled=false;
+      var _cb2=document.getElementById('cast-btn');if(_cb2){_cb2.disabled=false;_cb2.classList.remove('recording');}
       // iOS sometimes fires onend before onresult — use interim if available
       if(isIOS && lastInterim && lastInterim.length){
         checkSpeech(lastInterim);
@@ -2229,17 +2367,37 @@ function initSpeech(){
 }
 var iosTimeout=null;
 var lastInterim=[];
-function enableNoMic(){noMic=true;speechOk=false;document.getElementById('btn-icon').textContent='👆';document.getElementById('mic-icon').textContent='🔇';}
+function updateMicUI(){
+  var bi  = document.getElementById('btn-icon');
+  var mi  = document.getElementById('mic-icon');
+  var tog = document.getElementById('set-mic-toggle');
+  var st  = document.getElementById('mic-status-label');
+  if(MIC_STATE==='ready'){
+    if(mi)  mi.textContent  = '🎙';
+    if(tog) tog.checked     = true;
+    if(st)  { st.textContent='Spracherkennung aktiv'; st.style.color='rgba(100,220,100,.7)'; }
+  } else if(MIC_STATE==='unavailable'){
+    if(mi)  mi.textContent  = '🚫';
+    if(tog) tog.checked     = false;
+    if(tog) tog.disabled    = true;
+    if(st)  { st.textContent='Nicht verfügbar (Browser)'; st.style.color='rgba(220,100,100,.7)'; }
+  } else { // off
+    if(mi)  mi.textContent  = '🔇';
+    if(tog) tog.checked     = false;
+    if(st)  { st.textContent='Spracherkennung aus'; st.style.color='rgba(200,160,80,.4)'; }
+  }
+}
+function enableNoMic(){ MIC_STATE='unavailable'; updateMicUI(); }
 function toggleMic(){
-  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(noMic&&SR){noMic=false;speechOk=true;document.getElementById('btn-icon').textContent='🪄';document.getElementById('mic-icon').textContent='🎙';}
-  else{noMic=true;speechOk=false;document.getElementById('btn-icon').textContent='👆';document.getElementById('mic-icon').textContent='🔇';}
+  // mic-btn in HUD now just shows mic status, not interactive
+  // mic is controlled via Settings panel
 }
 
 // ════════════════════════════════════════
 // BOOT
 // ════════════════════════════════════════
-initSpeech();
+initSpeechIfEnabled();
+updateMicUI();
 resize();
 draw(RT.HALL,1);
 </script>
