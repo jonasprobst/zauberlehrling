@@ -1,0 +1,2247 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Dungeon der Runen</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Cinzel:wght@400;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html{height:100%;height:-webkit-fill-available;}
+body{
+  min-height:100vh;min-height:100dvh;min-height:-webkit-fill-available;
+  background:#1a0e06;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  overflow:hidden;user-select:none;font-family:'Cinzel',serif;color:#ddd4bb;
+}
+
+/* ══ SCREENS ══ */
+.screen{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .4s;z-index:10;}
+.screen.active{opacity:1;pointer-events:all;}
+
+/* ══ TITLE ══ */
+#s-title{background:radial-gradient(ellipse at 50% 35%,#3a2010 0%,#1a0e06 65%);}
+.t-runes{font-size:2rem;letter-spacing:.5em;color:rgba(245,192,48,.2);margin-bottom:20px;animation:rdrift 6s ease-in-out infinite alternate;}
+@keyframes rdrift{from{letter-spacing:.3em;opacity:.15}to{letter-spacing:.7em;opacity:.3}}
+.t-main{font-family:'Cinzel Decorative',cursive;font-size:clamp(2rem,8vw,3.2rem);font-weight:900;color:#f5c030;text-shadow:0 0 30px rgba(245,192,48,.6),0 0 80px rgba(245,176,0,.15);text-align:center;line-height:1.25;margin-bottom:10px;}
+.t-sub{font-size:.7rem;letter-spacing:.35em;color:rgba(221,212,187,.35);text-align:center;margin-bottom:48px;text-transform:uppercase;}
+.t-btn{padding:20px 56px;font-family:'Cinzel Decorative',cursive;font-size:1.1rem;font-weight:700;letter-spacing:.08em;background:linear-gradient(135deg,#7a3800,#cc6600);color:#fff;border:none;border-radius:16px;cursor:pointer;box-shadow:0 0 32px rgba(200,100,0,.5),0 6px 24px rgba(0,0,0,.5);animation:tbpulse 2.2s ease-in-out infinite;}
+@keyframes tbpulse{0%,100%{box-shadow:0 0 20px rgba(200,100,0,.4),0 6px 24px rgba(0,0,0,.5)}50%{box-shadow:0 0 50px rgba(220,120,0,.8),0 0 100px rgba(200,80,0,.2),0 6px 24px rgba(0,0,0,.5)}}
+.t-btn:active{transform:scale(.96);}
+
+/* ══ WIN ══ */
+#s-win{background:radial-gradient(ellipse at 50% 40%,#2a1808 0%,#100804 70%);}
+.w-trophy{font-size:clamp(6rem,22vw,10rem);animation:wpop .8s cubic-bezier(.34,1.56,.64,1) both;filter:drop-shadow(0 0 50px gold);}
+@keyframes wpop{from{transform:scale(0) rotate(-25deg);opacity:0}75%{transform:scale(1.18) rotate(8deg)}to{transform:scale(1) rotate(0);opacity:1}}
+.w-title{font-family:'Cinzel Decorative',cursive;font-size:clamp(1.6rem,6vw,2.8rem);font-weight:900;color:#f5c030;text-shadow:0 0 24px rgba(245,192,48,.8);margin:14px 0 4px;animation:fup .5s .35s both;}
+.w-sub{font-size:.75rem;letter-spacing:.25em;color:#20d4b8;margin-bottom:28px;animation:fup .5s .5s both;text-transform:uppercase;}
+.w-runes{display:flex;gap:12px;margin-bottom:32px;animation:fup .5s .4s both;}
+.w-rune{width:54px;height:54px;border-radius:11px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;animation:runeReveal .5s calc(.6s + var(--i)*.12s) both;}
+@keyframes runeReveal{from{transform:scale(0) rotate(-15deg);opacity:0}75%{transform:scale(1.2)}to{transform:scale(1);opacity:1}}
+.w-rune .wr-e{font-size:1.5rem;line-height:1;}
+.w-rune .wr-s{font-family:'Cinzel Decorative',cursive;font-size:.6rem;font-weight:700;}
+.w-btn{padding:16px 44px;font-family:'Cinzel Decorative',cursive;font-size:.95rem;background:linear-gradient(135deg,#7a3800,#cc6600);color:#fff;border:none;border-radius:14px;cursor:pointer;box-shadow:0 0 24px rgba(200,100,0,.5);animation:fup .5s .85s both;}
+.w-btn:active{transform:scale(.96);}
+@keyframes fup{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+
+/* ══ GAME ══ */
+#s-game{background:#1a0e06;justify-content:flex-start;padding:0;}
+#game-wrap{width:100%;max-width:480px;height:100%;display:flex;flex-direction:column;}
+
+/* ── HUD ── */
+#hud{display:flex;align-items:center;justify-content:space-between;padding:8px 14px 4px;flex-shrink:0;position:relative;z-index:20;}
+
+#mic-btn{background:rgba(232,216,184,.06);border:1px solid rgba(232,216,184,.12);border-radius:20px;padding:5px 14px;font-size:1rem;cursor:pointer;color:rgba(232,216,184,.45);display:flex;align-items:center;gap:5px;}
+#exit-btn{background:rgba(232,216,184,.06);border:1px solid rgba(232,216,184,.12);border-radius:20px;padding:5px 12px;font-size:.85rem;cursor:pointer;color:rgba(232,216,184,.35);display:flex;align-items:center;gap:4px;letter-spacing:.04em;}
+#exit-btn:active{background:rgba(255,255,255,.1);}
+#mic-btn:active{background:rgba(255,255,255,.12);}
+
+/* ── RUNE BAR ── */
+#rune-bar{display:flex;align-items:center;justify-content:center;gap:7px;padding:3px 14px 6px;flex-shrink:0;z-index:20;}
+.rs{width:clamp(42px,11vw,54px);height:clamp(42px,11vw,54px);border-radius:9px;border:2px solid rgba(200,160,80,.18);background:rgba(200,160,80,.06);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;transition:all .4s;}
+.rs.earned{border-color:var(--c,#f5a623);box-shadow:0 0 16px color-mix(in srgb,var(--c,#f5a623) 45%,transparent);background:color-mix(in srgb,var(--c,#f5a623) 10%,transparent);}
+/* rs-e removed from rune bar, kept for win screen only */
+.rs .rs-s{font-family:'Cinzel Decorative',cursive;font-size:clamp(.65rem,.9em,.85rem);font-weight:700;color:rgba(232,216,184,.18);transition:all .4s;line-height:1;}
+.rs.earned .rs-s{color:var(--c,#f5a623);}
+.rs.boss-now{animation:bnow 1.2s ease-in-out infinite;border-color:var(--bnow-col,#20d4b8) !important;}
+@keyframes bnow{0%,100%{box-shadow:0 0 10px color-mix(in srgb,var(--bnow-col,#20d4b8) 50%,transparent)}50%{box-shadow:0 0 30px color-mix(in srgb,var(--bnow-col,#20d4b8) 90%,transparent),0 0 55px color-mix(in srgb,var(--bnow-col,#20d4b8) 25%,transparent)}}
+.rs.boss-done{border-color:var(--c,#f5a623) !important;box-shadow:0 0 18px color-mix(in srgb,var(--c,#f5a623) 60%,transparent) !important;opacity:.7;}
+
+/* ── DUNGEON VIEWPORT ── */
+#dungeon{flex:1;min-height:0;width:100%;position:relative;overflow:hidden;cursor:pointer;background:#1a0e06;}
+#dc{width:100%;height:100%;display:block;}
+
+/* creature */
+#creature-layer{position:absolute;inset:0;pointer-events:none;}
+#cre{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:clamp(120px,32vw,200px);height:auto;line-height:1;opacity:0;transition:opacity .3s;}
+.cre-float{animation:cfloat 2.6s ease-in-out infinite;}
+@keyframes cfloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+.cre-taunt{animation:ctaunt .55s ease-in-out!important;}
+@keyframes ctaunt{0%,100%{transform:translateX(0)}20%{transform:translateX(-14px) rotate(-7deg)}40%{transform:translateX(14px) rotate(7deg)}60%{transform:translateX(-8px) rotate(-4deg)}80%{transform:translateX(8px) rotate(4deg)}}
+.cre-die{animation:cdie .8s ease-out forwards!important;}
+@keyframes cdie{0%{transform:scale(1);opacity:1}25%{transform:scale(1.35) rotate(12deg);filter:brightness(3) drop-shadow(0 0 24px orange)}60%{transform:scale(.5) rotate(-22deg);opacity:.4}100%{transform:scale(0) rotate(35deg);opacity:0}}
+
+/* ── BOSS ENTRY ── */
+/* Boss intro overlay - full screen dramatic */
+#boss-intro{
+  position:fixed;inset:0;z-index:40;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:radial-gradient(ellipse at 50% 50%,#3a0a00 0%,#1a0600 60%,#080200 100%);
+  opacity:0;pointer-events:none;
+  transition:opacity .3s;
+  gap:0;
+}
+#boss-intro.show{opacity:1;pointer-events:all;}
+
+/* Pulsing ring behind boss */
+#boss-ring{
+  position:absolute;width:min(70vw,340px);height:min(70vw,340px);
+  border-radius:50%;
+  background:conic-gradient(
+    #ff0000 0deg, #ff6600 40deg, #ffcc00 80deg,
+    #ff0066 130deg, #aa00ff 180deg, #ff0000 220deg,
+    #ff4400 270deg, #ffaa00 310deg, #ff0000 360deg
+  );
+  opacity:0;
+  animation:none;
+  filter:blur(18px);
+}
+#boss-ring.active{opacity:.45;animation:bossRingSpin 3s linear infinite;}
+@keyframes bossRingSpin{to{transform:rotate(360deg);}}
+
+/* The boss SVG container during intro */
+#boss-preview{
+  position:relative;z-index:2;
+  width:min(55vw,260px);height:min(66vw,312px);
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;
+}
+#boss-preview.show{animation:bossEntryPop .7s cubic-bezier(.34,1.56,.64,1) .4s forwards;}
+@keyframes bossEntryPop{
+  0%  {opacity:0;transform:scale(0.05) rotate(-15deg);filter:blur(20px) brightness(5);}
+  40% {opacity:1;transform:scale(1.3) rotate(5deg);filter:blur(0) brightness(2.5);}
+  70% {transform:scale(.95) rotate(-2deg);filter:brightness(1.4);}
+  100%{transform:scale(1) rotate(0);opacity:1;filter:brightness(1);}
+}
+#boss-preview svg{width:100%;height:100%;}
+
+/* Boss name text */
+#boss-name-text{
+  position:relative;z-index:3;
+  font-family:'Cinzel Decorative',cursive;
+  font-size:clamp(1.2rem,5vw,2rem);
+  font-weight:900;
+  color:#ff3300;
+  text-shadow:0 0 20px #ff3300,0 0 50px rgba(255,51,0,.5);
+  letter-spacing:.1em;
+  opacity:0;
+  margin-top:16px;
+  text-align:center;
+}
+#boss-name-text.show{animation:bossNameReveal .5s .9s both;}
+@keyframes bossNameReveal{
+  from{opacity:0;transform:scaleX(0.2);letter-spacing:.5em;}
+  to  {opacity:1;transform:scaleX(1);letter-spacing:.1em;}
+}
+
+/* Tap to continue */
+#boss-tap{
+  position:relative;z-index:3;
+  font-size:.7rem;letter-spacing:.3em;
+  color:rgba(255,180,100,.6);
+  text-transform:uppercase;
+  margin-top:20px;opacity:0;
+  animation:none;
+}
+#boss-tap.show{animation:fup .4s 1.4s both,tapBlink 1.2s 1.8s ease-in-out infinite;}
+@keyframes tapBlink{0%,100%{opacity:.4}50%{opacity:.9}}
+
+/* Screen shake keyframes */
+@keyframes bossQuake{
+  0%,100%{transform:translate(0,0) rotate(0)}
+  10%{transform:translate(-8px,-4px) rotate(-.4deg)}
+  20%{transform:translate(8px,4px) rotate(.4deg)}
+  30%{transform:translate(-6px,3px) rotate(-.3deg)}
+  40%{transform:translate(6px,-3px) rotate(.3deg)}
+  50%{transform:translate(-10px,2px) rotate(-.5deg)}
+  60%{transform:translate(10px,-2px) rotate(.5deg)}
+  70%{transform:translate(-4px,4px) rotate(-.2deg)}
+  80%{transform:translate(4px,-4px) rotate(.2deg)}
+  90%{transform:translate(-2px,2px)}
+}
+.boss-quake{animation:bossQuake .6s ease-out;}
+
+/* Boss glow pulse during fight */
+.cre-boss-pulse{
+  animation:cfloat 2s ease-in-out infinite, bossPulse 2.5s ease-in-out infinite;
+}
+@keyframes bossPulse{
+  0%,100%{filter:drop-shadow(0 0 12px #ff3300) drop-shadow(0 0 30px rgba(255,51,0,.3));}
+  50%    {filter:drop-shadow(0 0 28px #ff6600) drop-shadow(0 0 60px rgba(255,102,0,.6)) brightness(1.1);}
+}
+
+/* Lightning flashes for boss entry */
+#boss-lightning{
+  position:fixed;inset:0;z-index:39;pointer-events:none;
+  opacity:0;background:white;
+}
+#boss-lightning.flash{animation:bossFlash .15s ease-out;}
+@keyframes bossFlash{0%{opacity:.7}100%{opacity:0}}
+
+/* ── NAV ARROWS — unified SVG arrows floating on dungeon ── */
+#nav-arrows{
+  position:absolute;
+  bottom:8%;left:0;right:0;
+  display:flex;justify-content:center;
+  align-items:flex-end;
+  gap:clamp(16px,8vw,48px);
+  pointer-events:none;
+  opacity:0;
+  transition:opacity .35s;
+  z-index:6;
+}
+#nav-arrows.show{opacity:1;pointer-events:all;}
+
+.nav-arrow{
+  cursor:pointer;
+  transition:transform .15s, opacity .15s;
+  filter:drop-shadow(0 4px 16px rgba(0,0,0,.7));
+  -webkit-tap-highlight-color:transparent;
+}
+.nav-arrow:active{transform:scale(.88) !important;}
+
+/* Idle float animation */
+.nav-arrow.fwd  { animation:arrowBobUp    1.6s ease-in-out infinite; }
+.nav-arrow.left { animation:arrowBobLeft  1.7s ease-in-out infinite; }
+.nav-arrow.right{ animation:arrowBobRight 1.7s ease-in-out infinite; animation-delay:.2s; }
+
+@keyframes arrowBobUp    {0%,100%{transform:translateY(0)}   50%{transform:translateY(-9px)}}
+@keyframes arrowBobLeft  {0%,100%{transform:translateX(0)}   50%{transform:translateX(-9px)}}
+@keyframes arrowBobRight {0%,100%{transform:translateX(0)}   50%{transform:translateX(9px)}}
+
+/* ── SPELL PANEL ── */
+#spell-panel{width:100%;flex-shrink:0;background:linear-gradient(180deg,transparent 0%,rgba(18,10,4,.96) 18%,rgba(10,6,4,1) 100%);padding:6px 12px 14px;display:flex;flex-direction:column;align-items:center;gap:8px;z-index:20;opacity:0;pointer-events:none;transition:opacity .3s;}
+#spell-panel.show{opacity:1;pointer-events:all;}
+
+#syl-row{display:flex;align-items:center;gap:4px;justify-content:center;min-height:56px;}
+.sy{width:clamp(42px,12vw,56px);height:clamp(42px,12vw,56px);border-radius:9px;border:2px solid rgba(255,255,255,.06);background:rgba(0,0,0,.28);display:flex;align-items:center;justify-content:center;transition:all .3s;}
+.sy.locked .sy-l{opacity:.18;color:#6a6080;}
+.sy.active{border-color:rgba(255,255,255,.55);background:rgba(255,255,255,.06);animation:syaglow 1.3s ease-in-out infinite;}
+@keyframes syaglow{0%,100%{box-shadow:0 0 8px rgba(255,255,255,.2)}50%{box-shadow:0 0 20px rgba(255,255,255,.5),0 0 40px rgba(255,255,255,.1)}}
+.sy.active .sy-l{color:rgba(255,255,255,.9);}
+.sy.solved{border-color:var(--rc,#f5a623);background:color-mix(in srgb,var(--rc,#f5a623) 12%,transparent);box-shadow:0 0 14px color-mix(in srgb,var(--rc,#f5a623) 55%,transparent);}
+.sy.sy-solving{border-color:white;background:rgba(255,255,255,.35);box-shadow:0 0 24px rgba(255,255,255,.8);transform:scale(1.12);transition:none;}
+.sy.wrong-flash{animation:wrongflash .45s ease-out forwards;}
+@keyframes wrongflash{0%{border-color:#ff3a55;background:rgba(255,58,85,.35);transform:scale(1.08)}50%{border-color:#ff3a55;background:rgba(255,58,85,.15)}100%{border-color:rgba(255,255,255,.55);background:rgba(255,255,255,.06);transform:scale(1)}}
+.sy-l{font-family:'Cinzel Decorative',cursive;font-size:clamp(.9rem,3vw,1.25rem);font-weight:700;color:#ddd4bb;transition:color .3s;}
+.sy.solved .sy-l{color:var(--rc,#f5a623);}
+.sy-dot{font-size:.8rem;color:rgba(255,255,255,.1);transition:color .3s;}
+.sy-dot.lit{color:rgba(255,255,255,.5);text-shadow:none;}
+
+
+
+#cast-btn{width:100%;min-height:62px;border:none;border-radius:14px;cursor:pointer;background:linear-gradient(135deg,#7a3800,#cc6200,#ff8c00);box-shadow:0 0 22px rgba(200,100,0,.5),0 5px 22px rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;gap:10px;font-size:1.9rem;position:relative;overflow:hidden;transition:all .2s;}
+#cast-btn:active{transform:scale(.97);}
+#cast-btn:disabled{opacity:.28;pointer-events:none;}
+#cast-btn::before{content:'';position:absolute;top:-60%;left:-70%;width:45%;height:220%;background:rgba(255,255,255,.07);transform:skewX(-20deg);animation:cshine 5s ease-in-out infinite;}
+@keyframes cshine{0%,65%,100%{left:-70%}35%{left:130%}}
+#mbars{display:flex;gap:3px;align-items:center;height:26px;opacity:0;transition:opacity .3s;}
+#mbars.on{opacity:1;}
+.mb{width:5px;background:#fff;border-radius:3px;animation:mbp var(--d) ease-in-out infinite alternate;box-shadow:0 0 4px rgba(255,255,255,.8);}
+@keyframes mbp{from{height:3px}to{height:24px}}
+
+/* ── OVERLAYS ── */
+#flash-overlay{position:fixed;inset:0;z-index:50;pointer-events:none;opacity:0;transition:opacity .1s;}
+#flash-overlay.red{background:rgba(255,40,55,.3);opacity:1;}
+#flash-overlay.teal{background:rgba(245,192,48,.18);opacity:1;}
+
+
+
+/* screen shake */
+@keyframes screenShake{
+  0%,100%{transform:translateX(0)}
+  10%{transform:translateX(-10px) rotate(-.5deg)}
+  20%{transform:translateX(10px) rotate(.5deg)}
+  30%{transform:translateX(-8px)}
+  40%{transform:translateX(8px)}
+  50%{transform:translateX(-5px)}
+  60%{transform:translateX(5px)}
+  70%{transform:translateX(-3px)}
+  80%{transform:translateX(3px)}
+}
+.screen-shake{animation:screenShake .5s ease-out;}
+
+/* sparks */
+.spark{position:fixed;border-radius:50%;pointer-events:none;z-index:55;animation:spkfly ease-out forwards;}
+@keyframes spkfly{to{transform:translate(var(--tx),var(--ty)) scale(0);opacity:0}}
+.confetti{position:fixed;pointer-events:none;z-index:65;animation:cfall linear forwards;}
+@keyframes cfall{to{transform:translateY(110vh) rotate(720deg);opacity:0}}
+
+/* ── SETTINGS ── */
+#settings-btn{position:absolute;top:16px;right:16px;width:42px;height:42px;
+  border-radius:50%;background:rgba(200,160,80,.12);border:1.5px solid rgba(200,160,80,.25);
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  color:rgba(200,160,80,.6);font-size:1.2rem;transition:all .2s;}
+#settings-btn:hover{background:rgba(200,160,80,.22);color:rgba(200,160,80,.9);}
+
+#settings-overlay{position:fixed;inset:0;z-index:50;
+  background:rgba(10,6,2,.82);backdrop-filter:blur(4px);
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity .25s;}
+#settings-overlay.open{opacity:1;pointer-events:all;}
+
+#settings-panel{background:#1e1208;border:1.5px solid rgba(200,160,80,.2);
+  border-radius:20px;padding:24px 20px 20px;width:min(340px,90vw);
+  max-height:80vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;}
+
+.set-title{font-family:'Cinzel Decorative',cursive;font-size:.9rem;
+  color:#f5c030;text-align:center;letter-spacing:.1em;}
+.set-close{position:absolute;top:14px;right:14px;background:none;border:none;
+  color:rgba(200,160,80,.5);font-size:1.4rem;cursor:pointer;padding:4px 8px;
+  border-radius:8px;}
+.set-close:hover{color:#f5c030;}
+.set-section{display:flex;flex-direction:column;gap:8px;}
+.set-label{font-size:.62rem;letter-spacing:.18em;color:rgba(200,160,80,.5);
+  text-transform:uppercase;}
+.set-chips{display:flex;flex-wrap:wrap;gap:6px;}
+.set-chip{padding:5px 12px;border-radius:20px;font-family:'Cinzel',serif;font-size:.75rem;
+  font-weight:700;letter-spacing:.05em;cursor:pointer;border:1.5px solid rgba(200,160,80,.25);
+  background:rgba(200,160,80,.06);color:rgba(232,216,184,.45);transition:all .18s;}
+.set-chip.on{border-color:rgba(200,160,80,.7);background:rgba(200,160,80,.18);
+  color:rgba(232,216,184,.9);}
+.set-divider{height:1px;background:rgba(200,160,80,.1);}
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.set-row-label{font-size:.75rem;color:rgba(232,216,184,.6);letter-spacing:.04em;}
+.set-toggle{position:relative;width:48px;height:26px;flex-shrink:0;}
+.set-toggle input{opacity:0;width:0;height:0;}
+.set-toggle-track{position:absolute;inset:0;border-radius:13px;
+  background:rgba(200,160,80,.15);border:1.5px solid rgba(200,160,80,.2);
+  cursor:pointer;transition:all .2s;}
+.set-toggle input:checked+.set-toggle-track{background:rgba(245,192,48,.35);
+  border-color:rgba(245,192,48,.6);}
+.set-toggle-track::after{content:'';position:absolute;top:3px;left:3px;
+  width:16px;height:16px;border-radius:50%;background:rgba(200,160,80,.4);
+  transition:transform .2s;}
+.set-toggle input:checked+.set-toggle-track::after{transform:translateX(22px);
+  background:#f5c030;}
+.set-info{font-size:.58rem;color:rgba(200,160,80,.3);text-align:center;
+  line-height:1.5;letter-spacing:.04em;}
+</style>
+</head>
+<body>
+<div id="flash-overlay"></div>
+<div id="boss-lightning"></div>
+
+<!-- BOSS INTRO OVERLAY -->
+<div id="boss-intro" onclick="dismissBossIntro()">
+  <div id="boss-ring"></div>
+  <div id="boss-preview"></div>
+  <div id="boss-name-text"></div>
+  <div id="boss-tap">✦ Tippe zum Kämpfen ✦</div>
+</div>
+
+<!-- TITLE -->
+<!-- SETTINGS OVERLAY -->
+<div id="settings-overlay" onclick="settingsClickOutside(event)">
+  <div id="settings-panel">
+    <div class="set-title">⚙ Einstellungen</div>
+    <button class="set-close" onclick="closeSettings()">✕</button>
+
+    <div class="set-section">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;">
+        <div class="set-label" style="margin-bottom:0">Vokale</div>
+        <button id="vowel-toggle-btn" onclick="toggleAllVowels()"
+          style="font-size:.58rem;padding:3px 10px;border-radius:10px;border:1px solid rgba(200,160,80,.3);background:rgba(200,160,80,.08);color:rgba(200,160,80,.6);cursor:pointer;letter-spacing:.06em;"></button>
+      </div>
+      <div class="set-chips" id="set-vowels"></div>
+    </div>
+
+    <div class="set-divider"></div>
+
+    <div class="set-section">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;">
+        <div class="set-label" style="margin-bottom:0">Konsonanten</div>
+        <button id="cons-toggle-btn" onclick="toggleAllConsonants()"
+          style="font-size:.58rem;padding:3px 10px;border-radius:10px;border:1px solid rgba(200,160,80,.3);background:rgba(200,160,80,.08);color:rgba(200,160,80,.6);cursor:pointer;letter-spacing:.06em;"></button>
+      </div>
+      <div class="set-chips" id="set-consonants"></div>
+    </div>
+
+    <div class="set-divider"></div>
+
+    <div class="set-row">
+      <div class="set-row-label">🎙 Spracherkennung</div>
+      <label class="set-toggle">
+        <input type="checkbox" id="set-mic-toggle" onchange="settingsMicToggle(this.checked)"/>
+        <div class="set-toggle-track"></div>
+      </label>
+    </div>
+
+    <div class="set-info">
+      Silben werden aus Konsonant + Vokal gebildet.<br>
+      Mindestens 2 Konsonanten und 2 Vokale auswählen.
+    </div>
+  </div>
+</div>
+
+<div class="screen active" id="s-title">
+  <button id="settings-btn" onclick="openSettings()">⚙</button>
+  <div class="t-runes">ᚠ ᚢ ᚦ ᚱ ᚲ</div>
+  <div class="t-main">Dungeon<br>der Runen</div>
+  <div class="t-sub">Ein Abenteuer für mutige Zauberer</div>
+  <button class="t-btn" onclick="startGame()">⚔ Eintreten ⚔</button>
+</div>
+
+<!-- WIN -->
+<div class="screen" id="s-win">
+  <div class="w-trophy">🏆</div>
+  <div class="w-title">Meister der Runen!</div>
+  <div class="w-sub">Du hast den Dungeon bezwungen</div>
+  <div class="w-runes" id="w-runes"></div>
+  <button class="w-btn" onclick="startGame()">▶ Nochmal!</button>
+</div>
+
+<!-- GAME -->
+<div class="screen" id="s-game">
+<div id="game-wrap">
+  <div id="hud">
+    <div id="mic-btn" onclick="toggleMic()"><span id="mic-icon">🎙</span></div>
+    <div id="exit-btn" onclick="exitDungeon()">✕</div>
+  </div>
+  <div id="rune-bar"></div>
+
+  <div id="dungeon" onclick="handleDungeonClick()">
+    <!-- SVG + creature-layer + nav-arrows injected by draw() -->
+  </div>
+
+  <div id="spell-panel">
+    <div id="syl-row"></div>
+    <button id="cast-btn" onclick="handleCast()">
+      <span id="btn-icon">🪄</span>
+      <div id="mbars">
+        <div class="mb" style="--d:.35s"></div>
+        <div class="mb" style="--d:.5s;animation-delay:.1s"></div>
+        <div class="mb" style="--d:.4s;animation-delay:.2s"></div>
+        <div class="mb" style="--d:.55s;animation-delay:.08s"></div>
+        <div class="mb" style="--d:.38s;animation-delay:.15s"></div>
+      </div>
+    </button>
+  </div>
+</div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════
+// MONSTER LIBRARY v5 — Kinderbuch Stil
+// Palette: #2a1505 outline · #e8d5a0 bone · #8b4513 warm brown
+// Accent: #ff6b35 orange · #ffd700 gold
+// Stroke: 3-3.5px body · 2-2.5px detail
+// viewBox 0 0 100 120 — hochformat
+// ══════════════════════════════════════════════════════════
+
+const MONSTERS = [
+
+// 1. SCHLEIMBLOB
+{id:'slime', name:'Schleimblob', svg:`<svg viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg">
+  <ellipse cx="50" cy="116" rx="28" ry="4" fill="#2a1505" opacity=".4"/>
+  <path d="M20 78 Q16 56 24 38 Q34 18 50 14 Q66 18 76 38 Q84 56 80 78 Q72 90 50 94 Q28 90 20 78Z" fill="#2a1505" opacity=".2" transform="translate(3,4)"/>
+  <path d="M20 76 Q16 54 24 36 Q34 16 50 12 Q66 16 76 36 Q84 54 80 76 Q72 88 50 92 Q28 88 20 76Z" fill="#7ab830" stroke="#2a1505" stroke-width="3.5"/>
+  <path d="M32 20 Q44 14 56 18 Q48 26 36 24Z" fill="white" opacity=".25"/>
+  <path d="M32 13 Q28 2 33 7" fill="none" stroke="#5a8a20" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M50 11 Q48 0 53 5" fill="none" stroke="#5a8a20" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M67 14 Q71 3 69 8" fill="none" stroke="#5a8a20" stroke-width="2.5" stroke-linecap="round"/>
+  <circle cx="38" cy="52" r="11" fill="white" stroke="#2a1505" stroke-width="2.5"/>
+  <circle cx="62" cy="52" r="11" fill="white" stroke="#2a1505" stroke-width="2.5"/>
+  <circle cx="40" cy="54" r="7" fill="#2a1505"/>
+  <circle cx="64" cy="54" r="7" fill="#2a1505"/>
+  <circle cx="42" cy="51" r="3" fill="white"/>
+  <circle cx="66" cy="51" r="3" fill="white"/>
+  <path d="M36 70 Q50 80 64 70" fill="none" stroke="#2a1505" stroke-width="3" stroke-linecap="round"/>
+  <path d="M42 72 L44 77 M50 74 L50 79 M58 72 L56 77" stroke="#2a1505" stroke-width="2" stroke-linecap="round"/>
+</svg>`},
+
+// 2. KNOCHIGER
+{id:'skeleton', name:'Knochiger', svg:`<svg viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg">
+  <ellipse cx="50" cy="117" rx="18" ry="3" fill="#2a1505" opacity=".35"/>
+  <rect x="42" y="88" width="7" height="26" rx="3" fill="#e8d5a0" stroke="#2a1505" stroke-width="2.5"/>
+  <rect x="52" y="88" width="7" height="26" rx="3" fill="#e8d5a0" stroke="#2a1505" stroke-width="2.5"/>
+  <circle cx="45" cy="102" r="5" fill="#e8d5a0" stroke="#2a1505" stroke-width="2.5"/>
+  <circle cx="55" cy="102" r="5" fill="#e8d5a0" stroke="#2a1505" stroke-width="2.5"/>
+  <rect x="33" y="52" width="34" height="38" rx="5" fill="#e8d5a0" stroke="#2a1505" stroke-width="3"/>
+  <line x1="33" y1="63" x2="67" y2="63" stroke="#2a1505" stroke-width="2"/>
+  <line x1="33" y1="74" x2="67" y2="74" stroke="#2a1505" stroke-width="2"/>
+  <line x1="50" y1="52" x2="50" y2="90" stroke="#2a1505" stroke-width="2"/>
+  <path d="M33 57 L16 68" stroke="#e8d5a0" stroke-width="6" stroke-linecap="round"/>
+  <path d="M16 68 L10 84" stroke="#e8d5a0" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="16" cy="68" r="5" fill="#e8d5a0" stroke="#2a1505" stroke-width="2"/>
+  <path d="M67 57 L84 66" stroke="#e8d5a0" stroke-width="6" stroke-linecap="round"/>
+  <path d="M84 66 L88 50" stroke="#e8d5a0" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="84" cy="66" r="5" fill="#e8d5a0" stroke="#2a1505" stroke-width="2"/>
+  <rect x="84" y="26" width="8" height="24" rx="4" fill="#e8d5a0" stroke="#2a1505" stroke-width="2.5"/>
+  <ellipse cx="88" cy="24" rx="9" ry="6" fill="#e8d5a0" stroke="#2a1505" stroke-width="2.5"/>
+  <ellipse cx="50" cy="34" rx="19" ry="21" fill="#e8d5a0" stroke="#2a1505" stroke-width="3"/>
+  <path d="M34 44 Q50 54 66 44 L66 52 Q50 62 34 52 Z" fill="#e8d5a0" stroke="#2a1505" stroke-width="2.5"/>
+  <rect x="38" y="48" width="5" height="7" rx="2" fill="white" stroke="#2a1505" stroke-width="1.5"/>
+  <rect x="45" y="48" width="5" height="8" rx="2" fill="white" stroke="#2a1505" stroke-width="1.5"/>
+  <rect x="52" y="48" width="5" height="8" rx="2" fill="white" stroke="#2a1505" stroke-width="1.5"/>
+  <rect x="59" y="48" width="5" height="7" rx="2" fill="white" stroke="#2a1505" stroke-width="1.5"/>
+  <ellipse cx="40" cy="30" rx="7" ry="8" fill="#2a1505"/>
+  <ellipse cx="60" cy="30" rx="7" ry="8" fill="#2a1505"/>
+  <circle cx="40" cy="29" r="3" fill="#ff6b35" opacity=".8"/>
+  <circle cx="60" cy="29" r="3" fill="#ff6b35" opacity=".8"/>
+</svg>`},
+
+// 3. FLEDERBIEST
+{id:'bat', name:'Flederbiest', svg:`<svg viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg">
+  <ellipse cx="50" cy="116" rx="16" ry="3" fill="#2a1505" opacity=".3"/>
+  <path d="M36 56 L10 34 L4 46 L14 52 L8 62 L22 58 L28 70Z" fill="#6b3a14" stroke="#2a1505" stroke-width="2.5"/>
+  <line x1="36" y1="56" x2="10" y2="34" stroke="#2a1505" stroke-width="1.5"/>
+  <line x1="36" y1="56" x2="14" y2="52" stroke="#2a1505" stroke-width="1.5"/>
+  <path d="M64 56 L90 34 L96 46 L86 52 L92 62 L78 58 L72 70Z" fill="#6b3a14" stroke="#2a1505" stroke-width="2.5"/>
+  <line x1="64" y1="56" x2="90" y2="34" stroke="#2a1505" stroke-width="1.5"/>
+  <line x1="64" y1="56" x2="86" y2="52" stroke="#2a1505" stroke-width="1.5"/>
+  <ellipse cx="50" cy="72" rx="20" ry="24" fill="#8b4513" stroke="#2a1505" stroke-width="3"/>
+  <ellipse cx="50" cy="76" rx="13" ry="16" fill="#a0522d" opacity=".5"/>
+  <path d="M42 94 L38 112" stroke="#6b3a14" stroke-width="5" stroke-linecap="round"/>
+  <path d="M58 94 L62 112" stroke="#6b3a14" stroke-width="5" stroke-linecap="round"/>
+  <path d="M38 112 L34 108 M38 112 L36 116 M38 112 L40 116" stroke="#2a1505" stroke-width="2" stroke-linecap="round"/>
+  <path d="M62 112 L66 108 M62 112 L64 116 M62 112 L60 116" stroke="#2a1505" stroke-width="2" stroke-linecap="round"/>
+  <ellipse cx="50" cy="48" rx="18" ry="16" fill="#7a3c10" stroke="#2a1505" stroke-width="3"/>
+  <polygon points="38,42 30,24 42,38" fill="#6b3a14" stroke="#2a1505" stroke-width="2"/>
+  <polygon points="62,42 70,24 58,38" fill="#6b3a14" stroke="#2a1505" stroke-width="2"/>
+  <circle cx="41" cy="46" r="8" fill="white" stroke="#2a1505" stroke-width="2"/>
+  <circle cx="59" cy="46" r="8" fill="white" stroke="#2a1505" stroke-width="2"/>
+  <circle cx="42" cy="47" r="5" fill="#2a1505"/>
+  <circle cx="60" cy="47" r="5" fill="#2a1505"/>
+  <circle cx="43" cy="45" r="2" fill="white"/>
+  <circle cx="61" cy="45" r="2" fill="white"/>
+  <polygon points="46,57 44,64 49,59" fill="white" stroke="#2a1505" stroke-width="1.5"/>
+  <polygon points="54,57 56,64 51,59" fill="white" stroke="#2a1505" stroke-width="1.5"/>
+</svg>`},
+
+// 4. STEINWÄCHTER
+{id:'guard', name:'Steinwächter', svg:`<svg viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg">
+  <ellipse cx="50" cy="117" rx="26" ry="3" fill="#2a1505" opacity=".4"/>
+  <rect x="36" y="88" width="11" height="26" rx="3" fill="#8b6914" stroke="#2a1505" stroke-width="2.5"/>
+  <rect x="53" y="88" width="11" height="26" rx="3" fill="#8b6914" stroke="#2a1505" stroke-width="2.5"/>
+  <line x1="36" y1="104" x2="47" y2="104" stroke="#2a1505" stroke-width="1.5"/>
+  <line x1="53" y1="104" x2="64" y2="104" stroke="#2a1505" stroke-width="1.5"/>
+  <rect x="26" y="50" width="48" height="40" rx="6" fill="#a08030" stroke="#2a1505" stroke-width="3"/>
+  <line x1="26" y1="65" x2="74" y2="65" stroke="#2a1505" stroke-width="2"/>
+  <line x1="26" y1="78" x2="74" y2="78" stroke="#2a1505" stroke-width="2"/>
+  <path d="M42 54 L44 66" fill="none" stroke="#2a1505" stroke-width="1.5" opacity=".5"/>
+  <rect x="8" y="52" width="18" height="28" rx="4" fill="#7a5010" stroke="#2a1505" stroke-width="2.5"/>
+  <ellipse cx="17" cy="66" rx="6" ry="10" fill="#8b6014" stroke="#2a1505" stroke-width="1.5"/>
+  <circle cx="17" cy="66" r="3" fill="#ffd700" stroke="#2a1505" stroke-width="1.5"/>
+  <rect x="74" y="52" width="14" height="22" rx="3" fill="#8b6914" stroke="#2a1505" stroke-width="2"/>
+  <rect x="78" y="16" width="6" height="38" rx="3" fill="#d4c070" stroke="#2a1505" stroke-width="2"/>
+  <rect x="72" y="30" width="18" height="5" rx="2" fill="#8b6014" stroke="#2a1505" stroke-width="2"/>
+  <rect x="28" y="22" width="44" height="32" rx="8" fill="#b89030" stroke="#2a1505" stroke-width="3"/>
+  <rect x="32" y="36" width="36" height="12" rx="3" fill="#2a1505"/>
+  <circle cx="41" cy="42" r="5" fill="#ff6b35" opacity=".9"/>
+  <circle cx="59" cy="42" r="5" fill="#ff6b35" opacity=".9"/>
+  <circle cx="41" cy="42" r="2.5" fill="#ffd700"/>
+  <circle cx="59" cy="42" r="2.5" fill="#ffd700"/>
+  <rect x="46" y="14" width="8" height="10" rx="2" fill="#b89030" stroke="#2a1505" stroke-width="2"/>
+  <rect x="44" y="10" width="12" height="6" rx="2" fill="#d4a030" stroke="#2a1505" stroke-width="2"/>
+</svg>`},
+
+// 5. WURMKOPF
+{id:'worm', name:'Wurmkopf', svg:`<svg viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg">
+  <ellipse cx="50" cy="112" rx="28" ry="6" fill="#2a1505" opacity=".5"/>
+  <path d="M30 112 Q40 108 50 110 Q60 108 70 112" fill="none" stroke="#2a1505" stroke-width="2.5"/>
+  <ellipse cx="50" cy="110" rx="24" ry="10" fill="#cd853f" stroke="#2a1505" stroke-width="2.5"/>
+  <ellipse cx="50" cy="98"  rx="22" ry="10" fill="#b8712a" stroke="#2a1505" stroke-width="2.5"/>
+  <line x1="28" y1="102" x2="72" y2="102" stroke="#2a1505" stroke-width="1.5" opacity=".4"/>
+  <ellipse cx="50" cy="86" rx="23" ry="10" fill="#cd853f" stroke="#2a1505" stroke-width="2.5"/>
+  <line x1="27" y1="90" x2="73" y2="90" stroke="#2a1505" stroke-width="1.5" opacity=".4"/>
+  <ellipse cx="50" cy="52" rx="28" ry="26" fill="#b8712a" stroke="#2a1505" stroke-width="3"/>
+  <path d="M34 30 Q46 24 58 28 Q50 36 38 34Z" fill="white" opacity=".2"/>
+  <path d="M22 58 Q50 72 78 58 L78 66 Q50 80 22 66 Z" fill="#a06020" stroke="#2a1505" stroke-width="2.5"/>
+  <polygon points="30,58 26,68 34,60" fill="white" stroke="#2a1505" stroke-width="1.5"/>
+  <polygon points="42,62 39,72 46,64" fill="white" stroke="#2a1505" stroke-width="1.5"/>
+  <polygon points="58,62 61,72 54,64" fill="white" stroke="#2a1505" stroke-width="1.5"/>
+  <polygon points="70,58 74,68 66,60" fill="white" stroke="#2a1505" stroke-width="1.5"/>
+  <circle cx="24" cy="44" r="10" fill="white" stroke="#2a1505" stroke-width="2.5"/>
+  <circle cx="76" cy="44" r="10" fill="white" stroke="#2a1505" stroke-width="2.5"/>
+  <circle cx="24" cy="45" r="6"  fill="#2a1505"/>
+  <circle cx="76" cy="45" r="6"  fill="#2a1505"/>
+  <circle cx="26" cy="42" r="2.5" fill="white"/>
+  <circle cx="78" cy="42" r="2.5" fill="white"/>
+  <path d="M16 36 Q24 32 30 36" fill="none" stroke="#2a1505" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M70 36 Q76 32 84 36" fill="none" stroke="#2a1505" stroke-width="2.5" stroke-linecap="round"/>
+</svg>`},
+
+// 6. SUMPFKRÖTE — big angry toad
+{id:'toad', name:'Sumpfkröte', svg:`<svg viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg">
+  <ellipse cx="50" cy="116" rx="30" ry="4" fill="#2a1505" opacity=".4"/>
+  <!-- shadow -->
+  <ellipse cx="50" cy="114" rx="26" ry="5" fill="#2a1505" opacity=".15" transform="translate(2,2)"/>
+  <!-- back legs flat -->
+  <ellipse cx="18" cy="98" rx="16" ry="8"  fill="#6b8c2a" stroke="#2a1505" stroke-width="2.5"/>
+  <ellipse cx="82" cy="98" rx="16" ry="8"  fill="#6b8c2a" stroke="#2a1505" stroke-width="2.5"/>
+  <!-- toes -->
+  <line x1="6"  y1="98" x2="2"  y2="104" stroke="#2a1505" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="10" y1="102" x2="6" y2="108" stroke="#2a1505" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="16" y1="104" x2="14" y2="110" stroke="#2a1505" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="94" y1="98" x2="98" y2="104" stroke="#2a1505" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="90" y1="102" x2="94" y2="108" stroke="#2a1505" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="84" y1="104" x2="86" y2="110" stroke="#2a1505" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- front legs -->
+  <ellipse cx="22" cy="80" rx="12" ry="7" fill="#7a9c30" stroke="#2a1505" stroke-width="2.5"/>
+  <ellipse cx="78" cy="80" rx="12" ry="7" fill="#7a9c30" stroke="#2a1505" stroke-width="2.5"/>
+  <!-- body — wide squat -->
+  <ellipse cx="50" cy="84" rx="36" ry="26" fill="#7a9c30" stroke="#2a1505" stroke-width="3.5"/>
+  <!-- belly -->
+  <ellipse cx="50" cy="90" rx="22" ry="16" fill="#c8d870" stroke="#2a1505" stroke-width="2"/>
+  <!-- warts -->
+  <circle cx="34" cy="74" r="4" fill="#6b8c28" stroke="#2a1505" stroke-width="1.5"/>
+  <circle cx="66" cy="72" r="3.5" fill="#6b8c28" stroke="#2a1505" stroke-width="1.5"/>
+  <circle cx="42" cy="78" r="3"   fill="#5a7c20" stroke="#2a1505" stroke-width="1.5"/>
+  <circle cx="72" cy="80" r="3.5" fill="#6b8c28" stroke="#2a1505" stroke-width="1.5"/>
+  <!-- head — wide, same width as body -->
+  <ellipse cx="50" cy="60" rx="34" ry="24" fill="#7a9c30" stroke="#2a1505" stroke-width="3.5"/>
+  <!-- sheen -->
+  <path d="M32 46 Q46 40 60 44 Q50 52 36 50Z" fill="white" opacity=".2"/>
+  <!-- EYES — huge bulging on top of head -->
+  <circle cx="28" cy="48" r="14" fill="white" stroke="#2a1505" stroke-width="3"/>
+  <circle cx="72" cy="48" r="14" fill="white" stroke="#2a1505" stroke-width="3"/>
+  <circle cx="28" cy="50" r="9" fill="#ffd700"/>
+  <circle cx="72" cy="50" r="9" fill="#ffd700"/>
+  <ellipse cx="28" cy="50" rx="4" ry="7" fill="#2a1505"/>
+  <ellipse cx="72" cy="50" rx="4" ry="7" fill="#2a1505"/>
+  <circle cx="30" cy="46" r="3" fill="white"/>
+  <circle cx="74" cy="46" r="3" fill="white"/>
+  <!-- wide grumpy mouth -->
+  <path d="M20 70 Q50 78 80 70" fill="none" stroke="#2a1505" stroke-width="3" stroke-linecap="round"/>
+  <!-- teeth -->
+  <rect x="34" y="68" width="6" height="5" rx="1" fill="white" stroke="#2a1505" stroke-width="1.5"/>
+  <rect x="60" y="68" width="6" height="5" rx="1" fill="white" stroke="#2a1505" stroke-width="1.5"/>
+</svg>`},
+
+// 7. SCHLEIMRITTER — knight encased in slime
+{id:'slimeknight', name:'Schleimritter', svg:`<svg viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg">
+  <ellipse cx="50" cy="117" rx="24" ry="3" fill="#2a1505" opacity=".4"/>
+  <!-- legs -->
+  <rect x="37" y="90" width="10" height="24" rx="4" fill="#5a8a20" stroke="#2a1505" stroke-width="2.5"/>
+  <rect x="53" y="90" width="10" height="24" rx="4" fill="#5a8a20" stroke="#2a1505" stroke-width="2.5"/>
+  <!-- slime drips off legs -->
+  <path d="M37 106 Q34 112 36 118" fill="none" stroke="#7ab830" stroke-width="3" stroke-linecap="round"/>
+  <path d="M63 108 Q66 114 64 118" fill="none" stroke="#7ab830" stroke-width="3" stroke-linecap="round"/>
+  <!-- body armour covered in slime -->
+  <rect x="28" y="50" width="44" height="42" rx="8" fill="#5a8a20" stroke="#2a1505" stroke-width="3"/>
+  <!-- slime drips on body -->
+  <path d="M34 50 Q30 42 32 36" fill="none" stroke="#7ab830" stroke-width="4" stroke-linecap="round"/>
+  <path d="M50 50 Q48 40 50 34" fill="none" stroke="#7ab830" stroke-width="4" stroke-linecap="round"/>
+  <path d="M66 50 Q70 42 68 36" fill="none" stroke="#7ab830" stroke-width="4" stroke-linecap="round"/>
+  <!-- slime pools on shoulders -->
+  <ellipse cx="28" cy="52" rx="8"  ry="5" fill="#7ab830" stroke="#2a1505" stroke-width="1.5"/>
+  <ellipse cx="72" cy="52" rx="8"  ry="5" fill="#7ab830" stroke="#2a1505" stroke-width="1.5"/>
+  <!-- sword arm -->
+  <rect x="74" y="54" width="12" height="20" rx="3" fill="#4a7a18" stroke="#2a1505" stroke-width="2"/>
+  <rect x="77" y="18" width="6"  height="38" rx="3" fill="#d4c070" stroke="#2a1505" stroke-width="2"/>
+  <rect x="71" y="32" width="18" height="4"  rx="2" fill="#8b6914" stroke="#2a1505" stroke-width="2"/>
+  <!-- shield -->
+  <rect x="10" y="54" width="16" height="26" rx="4" fill="#4a7a18" stroke="#2a1505" stroke-width="2.5"/>
+  <ellipse cx="18" cy="67" rx="5" ry="9" fill="#5a8a20" stroke="#2a1505" stroke-width="1.5"/>
+  <!-- helmet — slime oozing out of visor -->
+  <rect x="28" y="20" width="44" height="34" rx="8" fill="#5a8a20" stroke="#2a1505" stroke-width="3"/>
+  <rect x="32" y="34" width="36" height="12" rx="3" fill="#2a1505"/>
+  <!-- slime pouring out of visor -->
+  <path d="M36 46 Q34 54 36 58" fill="none" stroke="#7ab830" stroke-width="3" stroke-linecap="round"/>
+  <path d="M50 46 Q50 54 50 58" fill="none" stroke="#7ab830" stroke-width="3" stroke-linecap="round"/>
+  <path d="M64 46 Q66 54 64 58" fill="none" stroke="#7ab830" stroke-width="3" stroke-linecap="round"/>
+  <!-- eyes glowing green through visor -->
+  <circle cx="40" cy="40" r="5" fill="#88ff44" opacity=".9"/>
+  <circle cx="60" cy="40" r="5" fill="#88ff44" opacity=".9"/>
+  <circle cx="40" cy="40" r="2.5" fill="white"/>
+  <circle cx="60" cy="40" r="2.5" fill="white"/>
+</svg>`},
+
+// 8. PILZGEIST — mushroom ghost hybrid
+{id:'shroomghost', name:'Pilzgeist', svg:`<svg viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg">
+  <ellipse cx="50" cy="114" rx="14" ry="3" fill="#2a1505" opacity=".25"/>
+  <!-- ghost body — floats, wispy bottom -->
+  <path d="M30 110 Q26 96 28 82 Q32 64 50 58 Q68 64 72 82 Q74 96 70 110 Q64 118 58 114 Q50 118 42 114 Q36 118 30 110Z" fill="#d4b8e0" stroke="#2a1505" stroke-width="3"/>
+  <!-- inner glow -->
+  <ellipse cx="50" cy="86" rx="16" ry="22" fill="#e8d0f0" opacity=".5"/>
+  <!-- ghost wispy tails -->
+  <path d="M36 110 Q32 116 34 120" fill="none" stroke="#d4b8e0" stroke-width="4" stroke-linecap="round"/>
+  <path d="M50 114 Q50 118 50 122" fill="none" stroke="#d4b8e0" stroke-width="4" stroke-linecap="round"/>
+  <path d="M64 110 Q68 116 66 120" fill="none" stroke="#d4b8e0" stroke-width="4" stroke-linecap="round"/>
+  <!-- MUSHROOM CAP on top of ghost head -->
+  <path d="M16 62 Q16 34 50 28 Q84 34 84 62Z" fill="#cc3300" stroke="#2a1505" stroke-width="3"/>
+  <!-- spots -->
+  <circle cx="36" cy="44" r="7"  fill="white" stroke="#2a1505" stroke-width="2"/>
+  <circle cx="56" cy="36" r="6"  fill="white" stroke="#2a1505" stroke-width="2"/>
+  <circle cx="70" cy="50" r="6"  fill="white" stroke="#2a1505" stroke-width="2"/>
+  <circle cx="28" cy="56" r="5"  fill="white" stroke="#2a1505" stroke-width="2"/>
+  <!-- cap underside -->
+  <path d="M16 62 Q50 72 84 62" fill="#ffddaa" stroke="#2a1505" stroke-width="2"/>
+  <!-- ghost face -->
+  <circle cx="40" cy="80" r="9" fill="white" stroke="#2a1505" stroke-width="2"/>
+  <circle cx="60" cy="80" r="9" fill="white" stroke="#2a1505" stroke-width="2"/>
+  <circle cx="41" cy="82" r="6" fill="#2a1505"/>
+  <circle cx="61" cy="82" r="6" fill="#2a1505"/>
+  <circle cx="43" cy="79" r="2.5" fill="white"/>
+  <circle cx="63" cy="79" r="2.5" fill="white"/>
+  <!-- wobbly scared mouth -->
+  <path d="M38 94 Q44 100 50 96 Q56 100 62 94" fill="none" stroke="#2a1505" stroke-width="2.5" stroke-linecap="round"/>
+</svg>`},
+
+// 9. SANDWURM — sand worm emerging
+{id:'sandworm', name:'Sandwurm', svg:`<svg viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg">
+  <ellipse cx="50" cy="114" rx="32" ry="6" fill="#2a1505" opacity=".5"/>
+  <!-- sand splash at base -->
+  <path d="M26 114 Q34 108 42 112 Q50 116 58 112 Q66 108 74 114" fill="none" stroke="#c4a040" stroke-width="3" stroke-linecap="round"/>
+  <!-- body segments emerging from sand -->
+  <ellipse cx="50" cy="108" rx="26" ry="10" fill="#c4a040" stroke="#2a1505" stroke-width="2.5"/>
+  <ellipse cx="50" cy="96"  rx="24" ry="10" fill="#d4b050" stroke="#2a1505" stroke-width="2.5"/>
+  <line x1="26" y1="100" x2="74" y2="100" stroke="#2a1505" stroke-width="1.5" opacity=".4"/>
+  <ellipse cx="50" cy="84" rx="25" ry="10" fill="#c4a040" stroke="#2a1505" stroke-width="2.5"/>
+  <line x1="25" y1="88" x2="75" y2="88" stroke="#2a1505" stroke-width="1.5" opacity=".4"/>
+  <ellipse cx="50" cy="72" rx="26" ry="10" fill="#d4b050" stroke="#2a1505" stroke-width="2.5"/>
+  <!-- HEAD — huge gaping maw -->
+  <ellipse cx="50" cy="46" rx="30" ry="28" fill="#c4900a" stroke="#2a1505" stroke-width="3.5"/>
+  <!-- sheen -->
+  <path d="M30 26 Q44 18 58 22 Q48 32 34 30Z" fill="white" opacity=".2"/>
+  <!-- lower jaw -->
+  <path d="M20 54 Q50 70 80 54 L80 64 Q50 80 20 64Z" fill="#a06000" stroke="#2a1505" stroke-width="3"/>
+  <!-- teeth ring — top -->
+  <polygon points="26,54 20,64 30,56" fill="white" stroke="#2a1505" stroke-width="1.5"/>
+  <polygon points="36,58 32,70 40,60" fill="white" stroke="#2a1505" stroke-width="1.5"/>
+  <polygon points="50,60 48,72 54,62" fill="white" stroke="#2a1505" stroke-width="1.5"/>
+  <polygon points="64,58 68,70 60,60" fill="white" stroke="#2a1505" stroke-width="1.5"/>
+  <polygon points="74,54 80,64 70,56" fill="white" stroke="#2a1505" stroke-width="1.5"/>
+  <!-- eyes — side mounted, huge -->
+  <circle cx="22" cy="38" r="12" fill="white" stroke="#2a1505" stroke-width="2.5"/>
+  <circle cx="78" cy="38" r="12" fill="white" stroke="#2a1505" stroke-width="2.5"/>
+  <circle cx="22" cy="39" r="8"  fill="#ffd700"/>
+  <circle cx="78" cy="39" r="8"  fill="#ffd700"/>
+  <ellipse cx="22" cy="39" rx="4" ry="6" fill="#2a1505"/>
+  <ellipse cx="78" cy="39" rx="4" ry="6" fill="#2a1505"/>
+  <circle cx="24" cy="36" r="3" fill="white"/>
+  <circle cx="80" cy="36" r="3" fill="white"/>
+</svg>`},
+
+// 10. GEISTERHUND — ghost dog / wolf
+{id:'ghostdog', name:'Geisterhund', svg:`<svg viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg">
+  <ellipse cx="46" cy="116" rx="22" ry="3" fill="#2a1505" opacity=".3"/>
+  <!-- tail — bushy -->
+  <path d="M76 74 Q90 66 92 54 Q90 46 84 50 Q86 42 78 46 Q80 38 72 44" fill="none" stroke="#c8c0e0" stroke-width="6" stroke-linecap="round"/>
+  <path d="M76 74 Q90 66 92 54 Q90 46 84 50" fill="none" stroke="#e8e0f0" stroke-width="3" stroke-linecap="round" opacity=".5"/>
+  <!-- hind legs -->
+  <path d="M58 92 Q56 102 52 110" fill="none" stroke="#b8b0d0" stroke-width="7" stroke-linecap="round"/>
+  <path d="M68 88 Q70 100 66 110" fill="none" stroke="#b8b0d0" stroke-width="6" stroke-linecap="round"/>
+  <!-- paws back -->
+  <ellipse cx="52" cy="112" rx="8" ry="4" fill="#c8c0e0" stroke="#2a1505" stroke-width="2"/>
+  <ellipse cx="66" cy="112" rx="7" ry="4" fill="#c8c0e0" stroke="#2a1505" stroke-width="2"/>
+  <!-- body -->
+  <ellipse cx="54" cy="78" rx="28" ry="20" fill="#c8c0e0" stroke="#2a1505" stroke-width="3"/>
+  <!-- fur texture suggestion -->
+  <path d="M30 70 Q36 66 42 70" fill="none" stroke="#a8a0c0" stroke-width="2" opacity=".5"/>
+  <path d="M62 66 Q68 62 74 66" fill="none" stroke="#a8a0c0" stroke-width="2" opacity=".5"/>
+  <!-- front legs -->
+  <path d="M36 90 Q32 102 30 112" fill="none" stroke="#b8b0d0" stroke-width="7" stroke-linecap="round"/>
+  <path d="M46 92 Q44 104 42 112" fill="none" stroke="#b8b0d0" stroke-width="6" stroke-linecap="round"/>
+  <ellipse cx="30" cy="114" rx="8"  ry="4" fill="#c8c0e0" stroke="#2a1505" stroke-width="2"/>
+  <ellipse cx="42" cy="114" rx="7"  ry="4" fill="#c8c0e0" stroke="#2a1505" stroke-width="2"/>
+  <!-- neck -->
+  <rect x="36" y="58" width="20" height="16" rx="6" fill="#c8c0e0" stroke="#2a1505" stroke-width="2.5"/>
+  <!-- HEAD -->
+  <ellipse cx="42" cy="44" rx="22" ry="20" fill="#d0c8e8" stroke="#2a1505" stroke-width="3"/>
+  <!-- sheen -->
+  <path d="M28 32 Q38 26 50 30 Q42 38 32 36Z" fill="white" opacity=".25"/>
+  <!-- ears — pointy -->
+  <polygon points="30,36 22,18 34,32" fill="#b8b0d0" stroke="#2a1505" stroke-width="2.5"/>
+  <polygon points="54,36 58,18 50,32" fill="#b8b0d0" stroke="#2a1505" stroke-width="2.5"/>
+  <!-- inner ear -->
+  <polygon points="30,36 24,22 32,32" fill="#ff8888" opacity=".5"/>
+  <polygon points="54,36 57,22 52,32" fill="#ff8888" opacity=".5"/>
+  <!-- eyes — glowing -->
+  <circle cx="34" cy="42" r="8" fill="white" stroke="#2a1505" stroke-width="2"/>
+  <circle cx="52" cy="42" r="8" fill="white" stroke="#2a1505" stroke-width="2"/>
+  <circle cx="34" cy="43" r="5" fill="#2a1505"/>
+  <circle cx="52" cy="43" r="5" fill="#2a1505"/>
+  <circle cx="35" cy="41" r="2" fill="white"/>
+  <circle cx="53" cy="41" r="2" fill="white"/>
+  <!-- snout -->
+  <ellipse cx="44" cy="54" rx="10" ry="7" fill="#c0b8d8" stroke="#2a1505" stroke-width="2"/>
+  <ellipse cx="44" cy="52" rx="5" ry="3"  fill="#2a1505"/>
+  <!-- teeth / snarl -->
+  <path d="M36 58 Q44 62 52 58" fill="none" stroke="#2a1505" stroke-width="2" stroke-linecap="round"/>
+  <polygon points="40,58 38,64 43,60" fill="white" stroke="#2a1505" stroke-width="1.5"/>
+  <polygon points="48,58 50,64 45,60" fill="white" stroke="#2a1505" stroke-width="1.5"/>
+  <!-- ghost wisps trailing off body -->
+  <path d="M78 80 Q86 78 88 82" fill="none" stroke="#c8c0e0" stroke-width="3" stroke-linecap="round" opacity=".6"/>
+  <path d="M80 88 Q90 90 90 96" fill="none" stroke="#c8c0e0" stroke-width="3" stroke-linecap="round" opacity=".5"/>
+</svg>`},
+
+];
+
+// ══════════════════════════════════════════════════════════
+// BOSSES — 3, same kinderbuch style but bigger/more imposing
+// ══════════════════════════════════════════════════════════
+
+const BOSSES = [
+
+// BOSS 1: STEINGOTT — massive stone colossus
+{id:'stonegod', name:'Steingott', svg:`<svg viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg">
+  <ellipse cx="50" cy="118" rx="44" ry="3" fill="#2a1505" opacity=".5"/>
+  <!-- feet -->
+  <rect x="22" y="104" width="20" height="14" rx="3" fill="#7a5010" stroke="#2a1505" stroke-width="2.5"/>
+  <rect x="58" y="104" width="20" height="14" rx="3" fill="#7a5010" stroke="#2a1505" stroke-width="2.5"/>
+  <!-- legs -->
+  <rect x="24" y="74" width="18" height="32" rx="3" fill="#8b6014" stroke="#2a1505" stroke-width="3"/>
+  <rect x="58" y="74" width="18" height="32" rx="3" fill="#8b6014" stroke="#2a1505" stroke-width="3"/>
+  <line x1="24" y1="90" x2="42" y2="90" stroke="#2a1505" stroke-width="2"/>
+  <line x1="58" y1="90" x2="76" y2="90" stroke="#2a1505" stroke-width="2"/>
+  <!-- glowing leg cracks -->
+  <path d="M30 78 L32 92" fill="none" stroke="#ff6b35" stroke-width="2.5"/>
+  <path d="M30 78 L32 92" fill="none" stroke="#ffd700" stroke-width="1" opacity=".8"/>
+  <path d="M66 80 L64 94" fill="none" stroke="#ff6b35" stroke-width="2.5"/>
+  <path d="M66 80 L64 94" fill="none" stroke="#ffd700" stroke-width="1" opacity=".8"/>
+  <!-- body — massive -->
+  <rect x="14" y="44" width="72" height="34" rx="5" fill="#c4a040" stroke="#2a1505" stroke-width="3.5"/>
+  <line x1="14" y1="58" x2="86" y2="58" stroke="#2a1505" stroke-width="2.5"/>
+  <line x1="14" y1="70" x2="86" y2="70" stroke="#2a1505" stroke-width="2.5"/>
+  <!-- body cracks glowing -->
+  <path d="M36 48 L34 60 L38 70" fill="none" stroke="#ff6b35" stroke-width="3"/>
+  <path d="M36 48 L34 60 L38 70" fill="none" stroke="#ffd700" stroke-width="1.2" opacity=".8"/>
+  <path d="M64 46 L66 58 L62 68" fill="none" stroke="#ff6b35" stroke-width="3"/>
+  <path d="M64 46 L66 58 L62 68" fill="none" stroke="#ffd700" stroke-width="1.2" opacity=".8"/>
+  <!-- chain across chest -->
+  <path d="M14 58 Q50 52 86 58" fill="none" stroke="#5c3a14" stroke-width="5" stroke-linecap="round"/>
+  <path d="M14 58 Q50 52 86 58" fill="none" stroke="#8b6914" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- arms -->
+  <rect x="0"  y="46" width="16" height="28" rx="3" fill="#a08030" stroke="#2a1505" stroke-width="2.5"/>
+  <rect x="84" y="46" width="16" height="28" rx="3" fill="#a08030" stroke="#2a1505" stroke-width="2.5"/>
+  <!-- boulder left -->
+  <polygon points="2,8 0,22 6,30 18,30 22,22 18,8" fill="#8b6914" stroke="#2a1505" stroke-width="2.5"/>
+  <path d="M6 12 L8 22" fill="none" stroke="#2a1505" stroke-width="1.5" opacity=".5"/>
+  <!-- shield right -->
+  <rect x="82" y="18" width="18" height="36" rx="5" fill="#7a5010" stroke="#2a1505" stroke-width="2.5"/>
+  <ellipse cx="91" cy="36" rx="6" ry="10" fill="#8b6014"/>
+  <circle cx="91" cy="36" r="4" fill="#ffd700" stroke="#2a1505" stroke-width="1.5"/>
+  <!-- HEAD — arch shaped -->
+  <path d="M14 12 Q14 0 50 0 Q86 0 86 12 L86 46 L14 46 Z" fill="#d4b040" stroke="#2a1505" stroke-width="3.5"/>
+  <line x1="14" y1="28" x2="86" y2="28" stroke="#2a1505" stroke-width="2.5"/>
+  <line x1="14" y1="38" x2="86" y2="38" stroke="#2a1505" stroke-width="2.5"/>
+  <!-- brow cracks glowing -->
+  <path d="M22 18 Q32 22 42 18" fill="none" stroke="#ff6b35" stroke-width="2.5"/>
+  <path d="M58 18 Q68 22 78 18" fill="none" stroke="#ff6b35" stroke-width="2.5"/>
+  <!-- eyes -->
+  <rect x="20" y="6"  width="20" height="14" rx="3" fill="#ff6b35"/>
+  <rect x="60" y="6"  width="20" height="14" rx="3" fill="#ff6b35"/>
+  <rect x="22" y="8"  width="16" height="10" rx="2" fill="#ffd700"/>
+  <rect x="62" y="8"  width="16" height="10" rx="2" fill="#ffd700"/>
+  <rect x="26" y="10" width="8"  height="6"  rx="1" fill="white" opacity=".7"/>
+  <rect x="66" y="10" width="8"  height="6"  rx="1" fill="white" opacity=".7"/>
+  <!-- mouth -->
+  <rect x="22" y="38" width="56" height="8" rx="2" fill="#2a1505"/>
+  <line x1="32" y1="38" x2="32" y2="46" stroke="#3d2409" stroke-width="3"/>
+  <line x1="44" y1="38" x2="44" y2="46" stroke="#3d2409" stroke-width="3"/>
+  <line x1="56" y1="38" x2="56" y2="46" stroke="#3d2409" stroke-width="3"/>
+  <line x1="68" y1="38" x2="68" y2="46" stroke="#3d2409" stroke-width="3"/>
+  <!-- crown merlons -->
+  <rect x="14" y="0" width="12" height="6" rx="1" fill="#d4b040" stroke="#2a1505" stroke-width="2"/>
+  <rect x="34" y="0" width="12" height="6" rx="1" fill="#d4b040" stroke="#2a1505" stroke-width="2"/>
+  <rect x="54" y="0" width="12" height="6" rx="1" fill="#d4b040" stroke="#2a1505" stroke-width="2"/>
+  <rect x="74" y="0" width="12" height="6" rx="1" fill="#d4b040" stroke="#2a1505" stroke-width="2"/>
+</svg>`},
+
+// BOSS 2: KNOCHENKÖNIG — skeleton king with crown, robes, staff
+{id:'boneking', name:'Knochenkönig', svg:`<svg viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg">
+  <ellipse cx="50" cy="118" rx="28" ry="3" fill="#2a1505" opacity=".4"/>
+  <!-- feet -->
+  <line x1="42" y1="110" x2="38" y2="118" stroke="#e8d5a0" stroke-width="4" stroke-linecap="round"/>
+  <line x1="42" y1="110" x2="44" y2="118" stroke="#e8d5a0" stroke-width="3" stroke-linecap="round"/>
+  <line x1="58" y1="110" x2="62" y2="118" stroke="#e8d5a0" stroke-width="4" stroke-linecap="round"/>
+  <line x1="58" y1="110" x2="56" y2="118" stroke="#e8d5a0" stroke-width="3" stroke-linecap="round"/>
+  <!-- legs -->
+  <line x1="44" y1="90" x2="42" y2="110" stroke="#e8d5a0" stroke-width="5" stroke-linecap="round"/>
+  <line x1="56" y1="90" x2="58" y2="110" stroke="#e8d5a0" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="43" cy="100" r="5" fill="#e8d5a0" stroke="#2a1505" stroke-width="2"/>
+  <circle cx="57" cy="100" r="5" fill="#e8d5a0" stroke="#2a1505" stroke-width="2"/>
+  <!-- robe -->
+  <path d="M28 54 L18 90 L28 90 L38 110 L50 96 L62 110 L72 90 L82 90 L72 54Z" fill="#2a0a3a" stroke="#2a1505" stroke-width="2.5"/>
+  <!-- gold trim -->
+  <path d="M28 54 L18 90 L28 90" fill="none" stroke="#c49000" stroke-width="2"/>
+  <path d="M72 54 L82 90 L72 90" fill="none" stroke="#c49000" stroke-width="2"/>
+  <line x1="28" y1="90" x2="38" y2="110" stroke="#c49000" stroke-width="2"/>
+  <line x1="72" y1="90" x2="62" y2="110" stroke="#c49000" stroke-width="2"/>
+  <!-- ribcage -->
+  <rect x="32" y="54" width="36" height="28" rx="2" fill="none" stroke="#e8d5a0" stroke-width="2"/>
+  <line x1="32" y1="64" x2="68" y2="64" stroke="#e8d5a0" stroke-width="1.5"/>
+  <line x1="32" y1="74" x2="68" y2="74" stroke="#e8d5a0" stroke-width="1.5"/>
+  <line x1="50" y1="54" x2="50" y2="82" stroke="#e8d5a0" stroke-width="1.5"/>
+  <!-- arms -->
+  <line x1="32" y1="58" x2="10" y2="68" stroke="#e8d5a0" stroke-width="5" stroke-linecap="round"/>
+  <line x1="10" y1="68" x2="4"  y2="52" stroke="#e8d5a0" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="10" cy="68" r="5" fill="#e8d5a0" stroke="#2a1505" stroke-width="2"/>
+  <!-- orb left hand -->
+  <circle cx="4"  cy="46" r="9" fill="#3a0a5a" stroke="#2a1505" stroke-width="2"/>
+  <circle cx="4"  cy="46" r="6" fill="#6a10aa" opacity=".8"/>
+  <circle cx="4"  cy="46" r="3" fill="#cc66ff"/>
+  <circle cx="2"  cy="44" r="1.5" fill="white" opacity=".8"/>
+  <!-- staff right -->
+  <line x1="68" y1="58" x2="88" y2="64" stroke="#e8d5a0" stroke-width="5" stroke-linecap="round"/>
+  <line x1="88" y1="64" x2="90" y2="38" stroke="#e8d5a0" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="88" cy="64" r="5" fill="#e8d5a0" stroke="#2a1505" stroke-width="2"/>
+  <rect x="87" y="4"  width="6" height="36" rx="3" fill="#a07020" stroke="#2a1505" stroke-width="2"/>
+  <!-- skull on staff -->
+  <ellipse cx="90" cy="10" rx="9" ry="8" fill="#e8d5a0" stroke="#2a1505" stroke-width="2"/>
+  <ellipse cx="86" cy="10" rx="3" ry="3.5" fill="#2a1505"/>
+  <ellipse cx="94" cy="10" rx="3" ry="3.5" fill="#2a1505"/>
+  <circle cx="86" cy="9" r="1.5" fill="#ff6b35" opacity=".7"/>
+  <circle cx="94" cy="9" r="1.5" fill="#ff6b35" opacity=".7"/>
+  <!-- skull head -->
+  <ellipse cx="50" cy="36" rx="20" ry="22" fill="#e8d5a0" stroke="#2a1505" stroke-width="3"/>
+  <!-- jaw -->
+  <rect x="34" y="48" width="32" height="12" rx="3" fill="#e8d5a0" stroke="#2a1505" stroke-width="2.5"/>
+  <rect x="36" y="52" width="5" height="7" rx="1" fill="white" stroke="#2a1505" stroke-width="1.5"/>
+  <rect x="43" y="52" width="5" height="8" rx="1" fill="white" stroke="#2a1505" stroke-width="1.5"/>
+  <rect x="50" y="52" width="5" height="8" rx="1" fill="white" stroke="#2a1505" stroke-width="1.5"/>
+  <rect x="57" y="52" width="5" height="7" rx="1" fill="white" stroke="#2a1505" stroke-width="1.5"/>
+  <!-- eye sockets -->
+  <ellipse cx="40" cy="32" rx="7" ry="8" fill="#2a1505"/>
+  <ellipse cx="60" cy="32" rx="7" ry="8" fill="#2a1505"/>
+  <circle cx="40" cy="31" r="3.5" fill="#cc3300" opacity=".85"/>
+  <circle cx="60" cy="31" r="3.5" fill="#cc3300" opacity=".85"/>
+  <path d="M47 42 Q50 46 53 42" fill="#aa8866"/>
+  <!-- CROWN — tall, impressive -->
+  <path d="M30 18 L24 4 L34 16 L40 4 L46 14 L50 4 L54 14 L60 4 L66 16 L76 4 L70 18Z" fill="#ffd700" stroke="#2a1505" stroke-width="2"/>
+  <circle cx="34" cy="12" r="3.5" fill="#ff4444" stroke="#2a1505" stroke-width="1"/>
+  <circle cx="50" cy="8"  r="4"   fill="#4488ff" stroke="#2a1505" stroke-width="1"/>
+  <circle cx="66" cy="12" r="3.5" fill="#ff4444" stroke="#2a1505" stroke-width="1"/>
+  <rect x="30" y="16" width="40" height="5" rx="1" fill="#ddaa22" stroke="#2a1505" stroke-width="1.5"/>
+</svg>`},
+
+// BOSS 3: DRACHENMUTTER — mother dragon, wings spread
+{id:'dragon', name:'Drachenmutter', svg:`<svg viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg">
+  <ellipse cx="48" cy="118" rx="40" ry="3" fill="#2a1505" opacity=".5"/>
+  <!-- tail -->
+  <path d="M62 106 Q78 98 86 84 Q92 72 84 60" fill="none" stroke="#8b3000" stroke-width="8" stroke-linecap="round"/>
+  <path d="M62 106 Q78 98 86 84 Q92 72 84 60" fill="none" stroke="#cc4400" stroke-width="4" stroke-linecap="round" opacity=".6"/>
+  <polygon points="84,60 76,54 82,64" fill="#ff6b35" stroke="#2a1505" stroke-width="1.5"/>
+  <!-- tail spines -->
+  <polygon points="84,72 90,66 86,76" fill="#cc4400" stroke="#2a1505" stroke-width="1.5"/>
+  <polygon points="88,86 94,82 90,90" fill="#cc4400" stroke="#2a1505" stroke-width="1.5"/>
+  <!-- feet -->
+  <path d="M32 104 Q26 112 20 116" fill="none" stroke="#8b3000" stroke-width="7" stroke-linecap="round"/>
+  <path d="M20 116 L14 112 M20 116 L18 120 M20 116 L24 120" stroke="#2a1505" stroke-width="2" stroke-linecap="round"/>
+  <!-- WINGS — large, fill sides -->
+  <path d="M30 52 L2 22 L8 36 L0 44 L10 48 L4 58 L16 56 L22 68Z" fill="#8b3000" stroke="#2a1505" stroke-width="2.5"/>
+  <path d="M30 52 L8 36 L16 56Z" fill="#aa3311" opacity=".4"/>
+  <line x1="30" y1="52" x2="2"  y2="22" stroke="#2a1505" stroke-width="1.5"/>
+  <line x1="30" y1="52" x2="0"  y2="44" stroke="#2a1505" stroke-width="1.5"/>
+  <line x1="30" y1="52" x2="4"  y2="58" stroke="#2a1505" stroke-width="1.5"/>
+  <path d="M66 52 L96 22 L90 36 L98 44 L88 48 L94 58 L82 56 L76 68Z" fill="#8b3000" stroke="#2a1505" stroke-width="2.5"/>
+  <path d="M66 52 L90 36 L82 56Z" fill="#aa3311" opacity=".4"/>
+  <line x1="66" y1="52" x2="96" y2="22" stroke="#2a1505" stroke-width="1.5"/>
+  <line x1="66" y1="52" x2="98" y2="44" stroke="#2a1505" stroke-width="1.5"/>
+  <line x1="66" y1="52" x2="94" y2="58" stroke="#2a1505" stroke-width="1.5"/>
+  <!-- body -->
+  <path d="M28 56 L22 78 L26 104 L42 110 L58 110 L72 104 L76 78 L70 56Z" fill="#cc4400" stroke="#2a1505" stroke-width="3"/>
+  <!-- belly -->
+  <path d="M36 60 Q50 54 64 60 Q60 74 50 76 Q40 74 36 60Z" fill="#ff8844" opacity=".4"/>
+  <!-- body spines -->
+  <polygon points="40,58 36,48 44,56" fill="#ff6b35" stroke="#2a1505" stroke-width="1.5"/>
+  <polygon points="50,56 50,46 54,54" fill="#ff5500" stroke="#2a1505" stroke-width="1.5"/>
+  <polygon points="60,58 64,48 56,56" fill="#ff6b35" stroke="#2a1505" stroke-width="1.5"/>
+  <!-- neck -->
+  <path d="M36 32 L32 56 L68 56 L64 32 L50 26Z" fill="#dd3300" stroke="#2a1505" stroke-width="2.5"/>
+  <!-- HEAD -->
+  <path d="M22 16 Q24 4 50 2 Q76 4 78 16 Q82 30 50 34 Q18 30 22 16Z" fill="#dd3300" stroke="#2a1505" stroke-width="3"/>
+  <!-- sheen -->
+  <path d="M32 6 Q44 2 58 6 Q50 12 38 10Z" fill="white" opacity=".2"/>
+  <!-- snout -->
+  <path d="M22 20 Q10 20 6 28 Q8 38 20 34 Q26 32 30 26Z" fill="#cc2200" stroke="#2a1505" stroke-width="2.5"/>
+  <path d="M78 20 Q90 20 94 28 Q92 38 80 34 Q74 32 70 26Z" fill="#cc2200" stroke="#2a1505" stroke-width="2.5"/>
+  <circle cx="10" cy="30" r="4" fill="#ff2200" opacity=".9"/>
+  <circle cx="90" cy="30" r="4" fill="#ff2200" opacity=".9"/>
+  <!-- eyes — large slit pupil -->
+  <ellipse cx="34" cy="14" rx="9" ry="8" fill="#ffd700" stroke="#2a1505" stroke-width="2"/>
+  <ellipse cx="66" cy="14" rx="9" ry="8" fill="#ffd700" stroke="#2a1505" stroke-width="2"/>
+  <ellipse cx="34" cy="15" rx="3.5" ry="6" fill="#2a1505"/>
+  <ellipse cx="66" cy="15" rx="3.5" ry="6" fill="#2a1505"/>
+  <circle cx="35" cy="12" r="2" fill="white" opacity=".7"/>
+  <circle cx="67" cy="12" r="2" fill="white" opacity=".7"/>
+  <!-- head spines -->
+  <polygon points="34,8  28,0  36,12" fill="#ff6b35" stroke="#2a1505" stroke-width="1.5"/>
+  <polygon points="44,4  44,0  48,6"  fill="#ff5500" stroke="#2a1505" stroke-width="1.5"/>
+  <polygon points="56,4  56,0  52,6"  fill="#ff5500" stroke="#2a1505" stroke-width="1.5"/>
+  <polygon points="66,8  72,0  64,12" fill="#ff6b35" stroke="#2a1505" stroke-width="1.5"/>
+  <!-- teeth -->
+  <polygon points="28,28 24,36 32,30" fill="white" stroke="#2a1505" stroke-width="1"/>
+  <polygon points="36,30 34,38 40,32" fill="white" stroke="#2a1505" stroke-width="1"/>
+  <polygon points="50,30 50,38 54,32" fill="white" stroke="#2a1505" stroke-width="1"/>
+  <polygon points="64,30 66,38 60,32" fill="white" stroke="#2a1505" stroke-width="1"/>
+  <polygon points="72,28 76,36 68,30" fill="white" stroke="#2a1505" stroke-width="1"/>
+  <!-- fire breath -->
+  <path d="M6 30 Q-4 36 -8 48" fill="none" stroke="#ff8c00" stroke-width="6" stroke-linecap="round" opacity=".9"/>
+  <path d="M6 30 Q-4 36 -8 48" fill="none" stroke="#ffd700" stroke-width="2.5" stroke-linecap="round" opacity=".8"/>
+  <circle cx="-6" cy="50" r="6" fill="#ffd700" opacity=".5"/>
+</svg>`},
+
+];
+
+if(typeof module !== 'undefined'){ module.exports = { MONSTERS, BOSSES }; }
+
+
+// ════════════════════════════════════════
+// DATA
+// ════════════════════════════════════════
+// Syllable pool - random 5 picked each game
+// SYL_POOL is built dynamically from settings — see buildSylPool()
+// ── SETTINGS ──
+const ALL_CONSONANTS = ['B','C','D','F','G','H','J','K','L','M','N','P','Q','R','S','T','V','W','X','Y','Z'];
+const ALL_VOWELS     = ['A','E','I','O','U'];
+
+// Load persisted settings or use defaults
+function loadSettings(){
+  try{
+    var s=JSON.parse(localStorage.getItem('ddr-settings')||'{}');
+    return {
+      consonants: s.consonants || ALL_CONSONANTS.slice(),
+      vowels:     s.vowels     || ALL_VOWELS.slice(),
+      mic:        s.mic        !== undefined ? s.mic : false,
+    };
+  }catch(e){ return {consonants:ALL_CONSONANTS.slice(),vowels:ALL_VOWELS.slice(),mic:false}; }
+}
+function saveSettings(){
+  try{ localStorage.setItem('ddr-settings', JSON.stringify(activeSettings)); }catch(e){}
+}
+
+var activeSettings = loadSettings();
+
+// Build SYL_POOL dynamically from active settings
+function buildSylPool(){
+  var pool=[];
+  activeSettings.consonants.forEach(function(con){
+    activeSettings.vowels.forEach(function(vow){ pool.push(con+vow); });
+  });
+  return pool;
+}
+
+function openSettings(){
+  renderSettingsChips();
+  document.getElementById('set-mic-toggle').checked = activeSettings.mic;
+  document.getElementById('settings-overlay').classList.add('open');
+}
+function closeSettings(){
+  document.getElementById('settings-overlay').classList.remove('open');
+  saveSettings();
+}
+function settingsClickOutside(e){
+  if(e.target===document.getElementById('settings-overlay')) closeSettings();
+}
+
+function toggleAllConsonants(){
+  if(activeSettings.consonants.length > 1){
+    activeSettings.consonants = [ALL_CONSONANTS[0]]; // reset to 1
+  } else {
+    activeSettings.consonants = ALL_CONSONANTS.slice(); // select all
+  }
+  renderSettingsChips();
+}
+
+function toggleAllVowels(){
+  if(activeSettings.vowels.length > 1){
+    activeSettings.vowels = [ALL_VOWELS[0]];
+  } else {
+    activeSettings.vowels = ALL_VOWELS.slice();
+  }
+  renderSettingsChips();
+}
+
+function renderSettingsChips(){
+  // Update toggle button labels
+  var cb=document.getElementById('cons-toggle-btn');
+  if(cb) cb.textContent = activeSettings.consonants.length>1 ? 'Auswahl aufheben' : 'Alle auswählen';
+  var vb=document.getElementById('vowel-toggle-btn');
+  if(vb) vb.textContent = activeSettings.vowels.length>1 ? 'Auswahl aufheben' : 'Alle auswählen';
+
+  renderChipGroup('set-consonants', ALL_CONSONANTS, activeSettings.consonants, function(val, on){
+    if(on){ if(!activeSettings.consonants.includes(val)) activeSettings.consonants.push(val); }
+    else  { if(activeSettings.consonants.length<=1){return false;} // min 2
+            activeSettings.consonants=activeSettings.consonants.filter(function(x){return x!==val;}); }
+    return true;
+  });
+  renderChipGroup('set-vowels', ALL_VOWELS, activeSettings.vowels, function(val, on){
+    if(on){ if(!activeSettings.vowels.includes(val)) activeSettings.vowels.push(val); }
+    else  { if(activeSettings.vowels.length<=1){return false;} // min 2
+            activeSettings.vowels=activeSettings.vowels.filter(function(x){return x!==val;}); }
+    return true;
+  });
+}
+
+function renderChipGroup(containerId, all, active, onToggle){
+  var el=document.getElementById(containerId);
+  el.innerHTML='';
+  all.forEach(function(val){
+    var chip=document.createElement('button');
+    chip.className='set-chip'+(active.includes(val)?' on':'');
+    chip.textContent=val;
+    chip.onclick=function(){
+      var isOn=!active.includes(val);
+      var ok=onToggle(val, isOn);
+      if(ok!==false) renderSettingsChips();
+    };
+    el.appendChild(chip);
+  });
+}
+
+function settingsMicToggle(on){
+  activeSettings.mic = on;
+  if(on){
+    noMic=false;
+    if(typeof SR!=='undefined'&&SR) initSpeechIfEnabled();
+  } else {
+    enableNoMic();
+  }
+}
+
+// Monster colors palette - each encounter gets a unique color
+const RUNE_COLORS = ['#f5a623','#4ea8ff','#ffdd44','#c97aff','#ff6eb0'];
+const BOSS_COLORS = ['#ff4400','#cc3300','#ff6600'];
+
+
+let currentBoss = null;
+// ENC gets populated fresh each startGame()
+let ENC = [];
+
+function generateENC() {
+  // Pick 5 unique syllables at random
+  const pool = buildSylPool(); if(pool.length<5){alert('Bitte mehr Konsonanten/Vokale auswählen!');return;}
+  const chosen = [];
+  while(chosen.length < 5) {
+    const idx = Math.floor(Math.random() * pool.length);
+    chosen.push(pool.splice(idx, 1)[0]);
+  }
+  // Pick 5 random unique monsters
+  const mPool = [...MONSTERS];
+  const pickedMonsters = [];
+  for(let i=0;i<5;i++){
+    const idx = Math.floor(Math.random() * mPool.length);
+    pickedMonsters.push(mPool.splice(idx,1)[0]);
+  }
+  ENC = pickedMonsters.map((m, i) => ({
+    svg: m.svg,
+    name: m.name,
+    syl: chosen[i],
+    col: RUNE_COLORS[i],
+  }));
+  // Pick random boss
+  currentBoss = BOSSES[Math.floor(Math.random() * BOSSES.length)];
+  currentBoss = {...currentBoss, col: BOSS_COLORS[Math.floor(Math.random()*BOSS_COLORS.length)]};
+}
+
+// Room types: affects corridor drawing
+const RT = {HALL:'hall', ARCH:'arch', CRYPT:'crypt', CHAMBER:'chamber', FORK:'fork', BOSS:'boss', ENC:'enc', ENTRANCE:'entrance', PREBOSS:'preboss'};
+
+// Walk rooms per step (2 steps between encounters, 1 for first encounter)
+// Variants: multiple options per step picked randomly for variety
+const STEP_ROOMS = [
+  [RT.HALL, RT.ARCH, RT.CRYPT, RT.CHAMBER],   // step 1 options
+  [RT.HALL, RT.CRYPT, RT.FORK,  RT.CHAMBER],  // step 2 options (optional fork)
+];
+
+// ════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════
+let gPhase = 'title';  // title | walk | encounter | boss | win
+let currentRuneCol = '#f5c030';
+let encIdx = 0;        // 0-4 encounter, 5 = boss
+let step   = 0;        // steps taken since last encounter (0-2)
+let spellLives   = 3;  // lives per spell attempt
+let sylProgress  = 0;  // how many syls solved in current spell
+let activeSpell  = []; // syllables to say this spell
+let noMic=true, speechOk=false, listening=false, rec=null; // mic off by default
+let currentRoom  = RT.HALL;
+let hasFork      = false; // current room has left/right choice
+let animating    = false;
+
+// ── Room renderer — Kinderbuch Stil ──
+// Classic one-point perspective, VP at canvas centre W/2 H/2
+// Room variants add small details for visual variety
+
+function makeDungeonSVG(room, progress){
+  if(progress===undefined) progress=1;
+  var W=300, H=400;
+  var op=Math.max(0,Math.min(1,progress));
+  var isFork    = room==='fork';
+  var isEnc     = room==='enc'||room==='boss';
+  var isBoss    = room==='boss';
+  var isEntrance= room==='entrance';
+  var isPreBoss = room==='preboss';
+
+  // VP dead centre
+  var vpX=W/2, vpY=H/2;
+  // Far wall rectangle
+  var fW=W*0.32, fH=H*0.40;
+  var fL=vpX-fW/2, fR=vpX+fW/2;
+  var fT=vpY-fH/2, fB=vpY+fH/2;
+
+  // Colours
+  var bgC  =isBoss?'#5a1200':isPreBoss?'#3a1a00':'#b8843a';
+  var ceilC=isBoss?'#2a0800':isPreBoss?'#2a1400':'#3d2409';
+  var wLC  =isBoss?'#3a0600':isPreBoss?'#3a1800':'#5c3a14';
+  var wRC  =isBoss?'#280400':isPreBoss?'#2a1200':'#4a2d0c';
+  var farC =isBoss?'#4a0800':isPreBoss?'#3a1a00':'#6b4c1e';
+  var flrC =isBoss?'#3a1000':isPreBoss?'#4a2a08':'#8b5e1c';
+  var arcC =isBoss?'#aa2400':isEntrance?'#d4a84a':'#c4903a';
+  var ol   ='#2a1505';
+
+  // Torch positions on side walls
+  var tLx=fL*0.45, tRx=fR+(W-fR)*0.55, tY=H*0.44;
+
+  // Pick a detail variant based on a simple hash of room+encIdx
+  // so it changes each time but is stable during one room visit
+  var variant = Math.floor(Math.random()*4); // 0-3, chosen once per draw call outside
+
+  var p=[];
+  p.push('<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg"'
+    +(op<1?' opacity="'+op.toFixed(2)+'"':'')
+    +' style="display:block;width:100%;height:100%;">');
+  p.push('<defs>');
+  if(isEntrance||(!isEnc&&!isPreBoss)){
+    p.push('<radialGradient id="ag" cx="50%" cy="50%" r="20%">'
+      +'<stop offset="0%" stop-color="rgba(255,210,100,.45)"/>'
+      +'<stop offset="100%" stop-color="rgba(0,0,0,0)"/>'
+      +'</radialGradient>');
+  }
+  if(isEnc){
+    p.push('<radialGradient id="ms" cx="50%" cy="50%" r="20%">'
+      +'<stop offset="0%" stop-color="rgba(255,160,40,.3)"/>'
+      +'<stop offset="100%" stop-color="rgba(0,0,0,0)"/>'
+      +'</radialGradient>');
+  }
+  p.push('<radialGradient id="tlg" cx="'+(tLx/W*100).toFixed(0)+'%" cy="'+(tY/H*100).toFixed(0)+'%" r="25%">'
+    +'<stop offset="0%" stop-color="rgba(255,165,40,.55)"/>'
+    +'<stop offset="100%" stop-color="rgba(0,0,0,0)"/>'
+    +'</radialGradient>');
+  p.push('<radialGradient id="trg" cx="'+(tRx/W*100).toFixed(0)+'%" cy="'+(tY/H*100).toFixed(0)+'%" r="25%">'
+    +'<stop offset="0%" stop-color="rgba(255,165,40,.55)"/>'
+    +'<stop offset="100%" stop-color="rgba(0,0,0,0)"/>'
+    +'</radialGradient>');
+  p.push('<radialGradient id="vg" cx="50%" cy="50%" r="70%">'
+    +'<stop offset="50%" stop-color="rgba(0,0,0,0)"/>'
+    +'<stop offset="100%" stop-color="rgba(15,8,2,.6)"/>'
+    +'</radialGradient>');
+  p.push('</defs>');
+
+  // Background
+  p.push('<rect width="'+W+'" height="'+H+'" fill="'+bgC+'"/>');
+
+  // CEILING — skip for entrance (it draws its own full layout)
+  if(!isEntrance){
+  p.push('<path fill="'+ceilC+'" stroke="'+ol+'" stroke-width="3"'
+    +' d="M0,0 L'+W+',0 L'+fR+','+fT+' L'+fL+','+fT+' Z"/>');
+  [W*0.25,W*0.5,W*0.75].forEach(function(tx){
+    var ix=vpX+(tx-vpX)*(vpY/(vpY-fT+0.001));
+    p.push('<line x1="'+tx.toFixed(0)+'" y1="0" x2="'+ix.toFixed(0)+'" y2="'+fT
+      +'" stroke="'+ol+'" stroke-width="1.5" opacity=".22"/>');
+  });
+
+  // LEFT WALL
+  p.push('<path fill="'+wLC+'" stroke="'+ol+'" stroke-width="3"'
+    +' d="M0,0 L0,'+H+' L'+fL+','+fB+' L'+fL+','+fT+' Z"/>');
+  [fT+fH*0.3,fT+fH*0.6,fT+fH*0.85].forEach(function(wy){
+    var scale=vpX/(vpX-fL+0.001);
+    var ly=vpY+(wy-vpY)*scale;
+    p.push('<line x1="'+fL+'" y1="'+wy.toFixed(0)+'" x2="0" y2="'+ly.toFixed(0)+'"'
+      +' stroke="'+ol+'" stroke-width="1.5" opacity=".28"/>');
+  });
+
+  // RIGHT WALL
+  p.push('<path fill="'+wRC+'" stroke="'+ol+'" stroke-width="3"'
+    +' d="M'+W+',0 L'+W+','+H+' L'+fR+','+fB+' L'+fR+','+fT+' Z"/>');
+  [fT+fH*0.3,fT+fH*0.6,fT+fH*0.85].forEach(function(wy){
+    var scale=(W-vpX)/(fR-vpX+0.001);
+    var ly=vpY+(wy-vpY)*scale;
+    p.push('<line x1="'+fR+'" y1="'+wy.toFixed(0)+'" x2="'+W+'" y2="'+ly.toFixed(0)+'"'
+      +' stroke="'+ol+'" stroke-width="1.5" opacity=".28"/>');
+  });
+
+  } // end if(!isEntrance)
+
+  // FAR WALL / OPENING
+  if(isPreBoss){
+    // Heavy iron door — same construction as far wall but with door drawn on it
+    p.push('<rect x="'+fL+'" y="'+fT+'" width="'+fW+'" height="'+fH
+      +'" fill="'+farC+'" stroke="'+ol+'" stroke-width="3"/>');
+    // Stone seams
+    [fT+fH*0.28,fT+fH*0.55,fT+fH*0.78].forEach(function(wy){
+      p.push('<line x1="'+fL+'" y1="'+wy.toFixed(0)+'" x2="'+fR+'" y2="'+wy.toFixed(0)+'"'
+        +' stroke="'+ol+'" stroke-width="1" opacity=".25"/>');
+    });
+    // IRON DOOR — dark slab filling the far wall opening
+    var dL=fL+4, dR=fR-4, dT=fT+4, dB=fB-4;
+    p.push('<rect x="'+dL+'" y="'+dT+'" width="'+(dR-dL)+'" height="'+(dB-dT)+'"'
+      +' fill="#1a1008" stroke="'+ol+'" stroke-width="2.5"/>');
+    // Door planks horizontal
+    p.push('<line x1="'+dL+'" y1="'+(dT+(dB-dT)*0.35)+'" x2="'+dR+'" y2="'+(dT+(dB-dT)*0.35)+'" stroke="'+ol+'" stroke-width="2"/>');
+    p.push('<line x1="'+dL+'" y1="'+(dT+(dB-dT)*0.65)+'" x2="'+dR+'" y2="'+(dT+(dB-dT)*0.65)+'" stroke="'+ol+'" stroke-width="2"/>');
+    // Door centre split
+    p.push('<line x1="'+vpX+'" y1="'+dT+'" x2="'+vpX+'" y2="'+dB+'" stroke="'+ol+'" stroke-width="2"/>');
+    // Iron rivets
+    [[dL+4,dT+4],[dR-4,dT+4],[dL+4,dB-4],[dR-4,dB-4]].forEach(function(rv){
+      p.push('<circle cx="'+rv[0]+'" cy="'+rv[1]+'" r="3" fill="#3a2810" stroke="'+ol+'" stroke-width="1.5"/>');
+    });
+    // Big golden lock
+    var lx=vpX-8, ly2=vpY-5;
+    p.push('<rect x="'+lx+'" y="'+ly2+'" width="16" height="12" rx="3" fill="#c49000" stroke="'+ol+'" stroke-width="2"/>');
+    p.push('<path d="M'+(lx+3)+','+ly2+' Q'+(lx+3)+','+(ly2-8)+' '+(lx+8)+','+(ly2-8)+' Q'+(lx+13)+','+(ly2-8)+' '+(lx+13)+','+ly2
+      +'" fill="none" stroke="#c49000" stroke-width="4" stroke-linecap="round"/>');
+    p.push('<path d="M'+(lx+3)+','+ly2+' Q'+(lx+3)+','+(ly2-8)+' '+(lx+8)+','+(ly2-8)+' Q'+(lx+13)+','+(ly2-8)+' '+(lx+13)+','+ly2
+      +'" fill="none" stroke="#ffd700" stroke-width="2" stroke-linecap="round"/>');
+    p.push('<circle cx="'+vpX+'" cy="'+(ly2+6)+'" r="3" fill="'+ol+'"/><circle cx="'+vpX+'" cy="'+(ly2+6)+'" r="1.5" fill="#ffd700"/>');
+    // Ominous red glow around door edges
+    p.push('<radialGradient id="dg" cx="50%" cy="50%" r="50%">'
+      +'<stop offset="0%" stop-color="rgba(200,40,0,.0)"/>'
+      +'<stop offset="85%" stop-color="rgba(200,40,0,.0)"/>'
+      +'<stop offset="100%" stop-color="rgba(200,40,0,.25)"/>'
+      +'</radialGradient>');
+    p.push('<rect x="'+fL+'" y="'+fT+'" width="'+fW+'" height="'+fH+'" fill="url(#dg)"/>');
+
+  } else if(isEntrance){
+    // ── ENTRANCE: full-bleed frontal stone wall ──
+    // Same dungeon palette, draws to canvas edges
+
+    // Clip everything to viewBox boundaries
+    p.push('<defs><clipPath id="ecl"><rect width="'+W+'" height="'+H+'"/></clipPath></defs>');
+    p.push('<g clip-path="url(#ecl)">');
+    // Stone wall — warm brown, fills everything
+    p.push('<rect width="'+W+'" height="'+H+'" fill="#5c3a14"/>');
+
+    // Stone block grid — same seam style as dungeon walls
+    // Rows of blocks, staggered, drawn edge-to-edge
+    var bH=H/7; // block row height
+    for(var ri=0;ri<8;ri++){
+      var ry=ri*bH;
+      var offset=(ri%2===0)?0:44; // stagger
+      for(var ci=-1;ci<5;ci++){
+        var rx=ci*88+offset;
+        var rw=82, rwh=bH-3;
+        var shade=ri%3===0?'#5c3a14':ri%3===1?'#4a2d0c':'#6b4c1e';
+        p.push('<rect x="'+rx.toFixed(0)+'" y="'+ry.toFixed(0)+'" width="'+rw+'" height="'+rwh.toFixed(0)+'"'
+          +' fill="'+shade+'" stroke="#2a1505" stroke-width="2.5"/>');
+        // Subtle surface highlight on each stone
+        p.push('<rect x="'+(rx+4).toFixed(0)+'" y="'+(ry+4).toFixed(0)+'" width="'+(rw-8)+'" height="'+(rwh*0.4).toFixed(0)+'"'
+          +' rx="1" fill="rgba(255,255,255,.06)"/>');
+      }
+    }
+
+    // ARCH opening — keystone arch, same proportions as dungeon arch
+    // Arch sits in upper-centre, big enough to feel real
+    var aCX=W/2;
+    var aW=W*0.56;          // wider than dungeon far wall
+    var aL=aCX-aW/2, aR=aCX+aW/2;
+    var aDoorB=H*0.90;      // door bottom near floor
+    var aRad=aW/2;
+    var aCY=aDoorB-aRad*1.1; // arch centre — higher so arch is tall
+
+    // Arch stone surround — thick, same brown as dungeon ceiling
+    var archThick=20;
+    p.push('<path d="M'+(aL-archThick)+','+aDoorB
+      +' L'+(aL-archThick)+','+(aCY)
+      +' A'+(aRad+archThick)+' '+(aRad+archThick)+' 0 0 1 '+(aR+archThick)+','+aCY
+      +' L'+(aR+archThick)+','+aDoorB+' Z"'
+      +' fill="#3d2409" stroke="#2a1505" stroke-width="3"/>');
+    // Keystone lines on arch surround
+    for(var ai=0;ai<=10;ai++){
+      var ang=Math.PI+ai*(Math.PI/10);
+      var kx1=aCX+(aRad+2)*Math.cos(ang), ky1=aCY+(aRad+2)*Math.sin(ang);
+      var kx2=aCX+(aRad+archThick-2)*Math.cos(ang), ky2=aCY+(aRad+archThick-2)*Math.sin(ang);
+      p.push('<line x1="'+kx1.toFixed(1)+'" y1="'+ky1.toFixed(1)+'" x2="'+kx2.toFixed(1)+'" y2="'+ky2.toFixed(1)+'"'
+        +' stroke="#2a1505" stroke-width="1.5"/>');
+    }
+
+    // Arch opening — dark inside with warm glow
+    p.push('<path d="M'+aL+','+aDoorB
+      +' L'+aL+','+aCY
+      +' A'+aRad+' '+aRad+' 0 0 1 '+aR+','+aCY
+      +' L'+aR+','+aDoorB+' Z"'
+      +' fill="#1a0e06"/>');
+    // Warm light from inside
+    p.push('<radialGradient id="igl" cx="50%" cy="75%" r="50%">'
+      +'<stop offset="0%" stop-color="rgba(255,180,60,.5)"/>'
+      +'<stop offset="100%" stop-color="rgba(0,0,0,0)"/>'
+      +'</radialGradient>');
+    p.push('<path d="M'+aL+','+aDoorB
+      +' L'+aL+','+aCY
+      +' A'+aRad+' '+aRad+' 0 0 1 '+aR+','+aCY
+      +' L'+aR+','+aDoorB+' Z"'
+      +' fill="url(#igl)"/>');
+
+    // DOOR — two panels, slightly ajar, same wood style as preboss door
+    var dMid=aCX, dT=aCY, dB=aDoorB;
+    var skewL=14, skewR=18; // ajar angle
+
+    // Left panel — hinged left, right edge pulled back
+    p.push('<path d="M'+aL+','+dT+' L'+(dMid-2)+','+(dT+skewL)
+      +' L'+(dMid-2)+','+dB+' L'+aL+','+dB+' Z"'
+      +' fill="#3d2409" stroke="#2a1505" stroke-width="2.5"/>');
+    // Planks
+    for(var pi=0;pi<4;pi++){
+      var px=aL+(dMid-aL)*pi/3;
+      var pxb=px+skewL*(pi/3);
+      p.push('<line x1="'+px.toFixed(0)+'" y1="'+dT+'" x2="'+pxb.toFixed(0)+'" y2="'+dB+'"'
+        +' stroke="#2a1505" stroke-width="1.5" opacity=".45"/>');
+    }
+    // Iron bands
+    [0.28,0.6].forEach(function(bt){
+      var by=dT+(dB-dT)*bt;
+      var bsk=skewL*bt;
+      p.push('<path d="M'+aL+','+by.toFixed(0)+' L'+(dMid-2)+','+(by+bsk*0.25).toFixed(0)+'"'
+        +' stroke="#2a1505" stroke-width="5" stroke-linecap="round"/>');
+      p.push('<path d="M'+aL+','+by.toFixed(0)+' L'+(dMid-2)+','+(by+bsk*0.25).toFixed(0)+'"'
+        +' stroke="#443322" stroke-width="3" stroke-linecap="round"/>');
+    });
+    // Rivets
+    [[aL+10,dT+(dB-dT)*0.14],[aL+10,dT+(dB-dT)*0.5],[aL+10,dT+(dB-dT)*0.84],
+     [dMid-14,dT+(dB-dT)*0.14],[dMid-14,dT+(dB-dT)*0.5],[dMid-14,dT+(dB-dT)*0.84]].forEach(function(rv){
+      p.push('<circle cx="'+rv[0].toFixed(0)+'" cy="'+rv[1].toFixed(0)+'" r="4" fill="#3a2810" stroke="#2a1505" stroke-width="1.5"/>');
+    });
+    // Depth edge on left door (inner face visible)
+    p.push('<rect x="'+(dMid-8)+'" y="'+dT+'" width="6" height="'+(dB-dT)+'" fill="#2a1505" opacity=".5"/>');
+
+    // Right panel — hinged right, left edge pulled back more (more open)
+    p.push('<path d="M'+(dMid+2)+','+(dT+skewR)+' L'+aR+','+dT
+      +' L'+aR+','+dB+' L'+(dMid+2)+','+dB+' Z"'
+      +' fill="#4a2d0c" stroke="#2a1505" stroke-width="2.5"/>');
+    for(var pi2=0;pi2<4;pi2++){
+      var px2=dMid+2+(aR-dMid-2)*pi2/3;
+      var py2t=dT+skewR*(1-pi2/3);
+      p.push('<line x1="'+px2.toFixed(0)+'" y1="'+py2t.toFixed(0)+'" x2="'+px2.toFixed(0)+'" y2="'+dB+'"'
+        +' stroke="#2a1505" stroke-width="1.5" opacity=".45"/>');
+    }
+    [0.28,0.6].forEach(function(bt){
+      var by=dT+(dB-dT)*bt;
+      var bsk=skewR*(1-bt);
+      p.push('<path d="M'+(dMid+2)+','+(by+bsk*0.6).toFixed(0)+' L'+aR+','+by.toFixed(0)+'"'
+        +' stroke="#2a1505" stroke-width="5" stroke-linecap="round"/>');
+      p.push('<path d="M'+(dMid+2)+','+(by+bsk*0.6).toFixed(0)+' L'+aR+','+by.toFixed(0)+'"'
+        +' stroke="#443322" stroke-width="3" stroke-linecap="round"/>');
+    });
+    [[dMid+14,dT+(dB-dT)*0.14],[dMid+14,dT+(dB-dT)*0.5],[dMid+14,dT+(dB-dT)*0.84],
+     [aR-10, dT+(dB-dT)*0.14],[aR-10, dT+(dB-dT)*0.5],[aR-10, dT+(dB-dT)*0.84]].forEach(function(rv){
+      p.push('<circle cx="'+rv[0].toFixed(0)+'" cy="'+rv[1].toFixed(0)+'" r="4" fill="#3a2810" stroke="#2a1505" stroke-width="1.5"/>');
+    });
+    // Depth edge on right door
+    p.push('<rect x="'+dMid+'" y="'+dT+'" width="6" height="'+(dB-dT)+'" fill="#2a1505" opacity=".4"/>');
+
+    // Door handles — iron rings same style as preboss lock
+    p.push('<circle cx="'+(dMid-10)+'" cy="'+(dT+(dB-dT)*0.52)+'" r="7" fill="none" stroke="#443322" stroke-width="3.5"/>');
+    p.push('<circle cx="'+(dMid-10)+'" cy="'+(dT+(dB-dT)*0.52)+'" r="7" fill="none" stroke="#665544" stroke-width="1.5"/>');
+    p.push('<circle cx="'+(dMid+10)+'" cy="'+(dT+(dB-dT)*0.52)+'" r="7" fill="none" stroke="#443322" stroke-width="3.5"/>');
+    p.push('<circle cx="'+(dMid+10)+'" cy="'+(dT+(dB-dT)*0.52)+'" r="7" fill="none" stroke="#665544" stroke-width="1.5"/>');
+
+    // TORCHES on wall — same style as dungeon, flanking the arch
+    [[aL-38, H*0.32],[aR+18, H*0.32]].forEach(function(ln){
+      var lx=ln[0], ly=ln[1];
+      // Wall bracket
+      p.push('<rect x="'+(lx-3)+'" y="'+(ly+8)+'" width="8" height="18" rx="3" fill="#5c3a14" stroke="#2a1505" stroke-width="2"/>');
+      // Torch flame — same as dungeon torches
+      p.push('<ellipse cx="'+lx.toFixed(0)+'" cy="'+ly.toFixed(0)+'" rx="8" ry="13" fill="#ff8c00" stroke="#2a1505" stroke-width="2"/>');
+      p.push('<ellipse cx="'+lx.toFixed(0)+'" cy="'+(ly+2)+'" rx="4.5" ry="8" fill="#ffd700"/>');
+      // Glow
+      p.push('<radialGradient id="tgen'+lx.toFixed(0)+'" cx="50%" cy="50%" r="50%">'
+        +'<stop offset="0%" stop-color="rgba(255,165,40,.5)"/>'
+        +'<stop offset="100%" stop-color="rgba(0,0,0,0)"/>'
+        +'</radialGradient>');
+      p.push('<ellipse cx="'+lx.toFixed(0)+'" cy="'+ly.toFixed(0)+'" rx="40" ry="40" fill="url(#tgen'+lx.toFixed(0)+')"/>');
+    });
+
+    // Floor — same colour as dungeon floor, stone flags
+    p.push('<rect x="0" y="'+aDoorB+'" width="'+W+'" height="'+(H-aDoorB)+'" fill="#8b5e1c"/>');
+    // Floor seam lines same as dungeon
+    p.push('<line x1="0" y1="'+(aDoorB+(H-aDoorB)*0.4)+'" x2="'+W+'" y2="'+(aDoorB+(H-aDoorB)*0.4)+'" stroke="#2a1505" stroke-width="1.5" opacity=".3"/>');
+    p.push('<line x1="0" y1="'+aDoorB+'" x2="'+W+'" y2="'+aDoorB+'" stroke="#2a1505" stroke-width="2.5"/>');
+
+    // Vignette
+    p.push('<rect width="'+W+'" height="'+H+'" fill="url(#vg)"/>');
+    p.push('</g>');
+    p.push('</svg>');
+    return p.join('');
+  } else if(!isFork){
+    if(!isEnc){
+      // Arch corridor
+      var ah2=fH*0.18;
+      p.push('<path fill="'+arcC+'" stroke="'+ol+'" stroke-width="3"'
+        +' d="M'+fL+','+fT
+        +' Q'+fL+','+(fT-ah2)+' '+vpX+','+(fT-ah2*1.5)
+        +' Q'+fR+','+(fT-ah2)+' '+fR+','+fT
+        +' L'+fR+','+fB+' L'+fL+','+fB+' Z"/>');
+      p.push('<path fill="rgba(255,220,120,.28)"'
+        +' d="M'+(fL+6)+','+(fT+2)
+        +' Q'+(fL+6)+','+(fT-ah2+5)+' '+vpX+','+(fT-ah2*1.5+5)
+        +' Q'+(fR-6)+','+(fT-ah2+5)+' '+(fR-6)+','+(fT+2)
+        +' L'+(fR-6)+','+fB+' L'+(fL+6)+','+fB+' Z"/>');
+      p.push('<rect width="'+W+'" height="'+H+'" fill="url(#ag)"/>');
+    } else {
+      // Solid encounter wall
+      p.push('<rect x="'+fL+'" y="'+fT+'" width="'+fW+'" height="'+fH
+        +'" fill="'+farC+'" stroke="'+ol+'" stroke-width="3"/>');
+      [fT+fH*0.28,fT+fH*0.55,fT+fH*0.78].forEach(function(wy){
+        p.push('<line x1="'+fL+'" y1="'+wy.toFixed(0)+'" x2="'+fR+'" y2="'+wy.toFixed(0)+'"'
+          +' stroke="'+ol+'" stroke-width="1.5" opacity=".28"/>');
+      });
+      p.push('<line x1="'+vpX+'" y1="'+fT+'" x2="'+vpX+'" y2="'+fB+'"'
+        +' stroke="'+ol+'" stroke-width="1" opacity=".2"/>');
+      p.push('<rect width="'+W+'" height="'+H+'" fill="url(#ms)"/>');
+      if(isBoss){
+        p.push('<path d="M'+vpX+','+(fT+8)+' L'+(vpX+7)+','+(vpY+10)+' L'+(vpX-5)+','+(fB-10)+'"'
+          +' fill="none" stroke="#ff3300" stroke-width="3" opacity=".65"/>');
+        p.push('<path d="M'+vpX+','+(fT+8)+' L'+(vpX+7)+','+(vpY+10)+' L'+(vpX-5)+','+(fB-10)+'"'
+          +' fill="none" stroke="#ffbb00" stroke-width="1" opacity=".5"/>');
+      }
+    }
+  } else {
+    // FORK
+    p.push('<rect x="'+fL+'" y="'+fT+'" width="'+fW+'" height="'+fH
+      +'" fill="'+farC+'" stroke="'+ol+'" stroke-width="3"/>');
+    [fT+fH*0.3,fT+fH*0.6,fT+fH*0.82].forEach(function(wy){
+      p.push('<line x1="'+fL+'" y1="'+wy.toFixed(0)+'" x2="'+fR+'" y2="'+wy.toFixed(0)+'"'
+        +' stroke="'+ol+'" stroke-width="1.5" opacity=".25"/>');
+    });
+    var oT=fT+fH*0.05, oB=fB, oR=fL*0.72, oAH=(oB-oT)*0.15;
+    p.push('<path fill="'+arcC+'" stroke="'+ol+'" stroke-width="2.5"'
+      +' d="M0,'+oT+' Q0,'+(oT-oAH)+' '+(oR/2)+','+(oT-oAH*1.4)
+      +' Q'+oR+','+(oT-oAH)+' '+oR+','+oT
+      +' L'+oR+','+oB+' L0,'+oB+' Z"/>');
+    p.push('<path fill="rgba(255,220,120,.22)"'
+      +' d="M0,'+(oT+3)+' Q0,'+(oT-oAH+4)+' '+(oR/2)+','+(oT-oAH*1.4+4)
+      +' Q'+(oR*0.85)+','+(oT-oAH+4)+' '+(oR*0.85)+','+(oT+3)
+      +' L'+(oR*0.85)+','+oB+' L0,'+oB+' Z"/>');
+    var roL=fR+(W-fR)*0.28;
+    p.push('<path fill="'+arcC+'" stroke="'+ol+'" stroke-width="2.5"'
+      +' d="M'+roL+','+oT+' Q'+roL+','+(oT-oAH)+' '+((roL+W)/2)+','+(oT-oAH*1.4)
+      +' Q'+W+','+(oT-oAH)+' '+W+','+oT
+      +' L'+W+','+oB+' L'+roL+','+oB+' Z"/>');
+    p.push('<path fill="rgba(255,220,120,.22)"'
+      +' d="M'+(roL+(W-roL)*0.15)+','+(oT+3)
+      +' Q'+(roL+(W-roL)*0.15)+','+(oT-oAH+4)+' '+((roL+W)/2)+','+(oT-oAH*1.4+4)
+      +' Q'+W+','+(oT-oAH+4)+' '+W+','+(oT+3)
+      +' L'+W+','+oB+' L'+(roL+(W-roL)*0.15)+','+oB+' Z"/>');
+  }
+
+  // FLOOR
+  if(!isEntrance){
+  p.push('<path fill="'+flrC+'" stroke="'+ol+'" stroke-width="2.5"'
+    +' d="M0,'+H+' L'+W+','+H+' L'+fR+','+fB+' L'+fL+','+fB+' Z"/>');
+  // Floor perspective lines — hidden
+  // Floor horizontal lines
+  [fB+(H-fB)*0.25,fB+(H-fB)*0.5,fB+(H-fB)*0.75].forEach(function(fy){
+    var t2=(fy-H)/(fB-H);
+    var lx=fL*t2, rx=W-(W-fR)*t2;
+    p.push('<line x1="'+lx.toFixed(0)+'" y1="'+fy.toFixed(0)+'" x2="'+rx.toFixed(0)+'" y2="'+fy.toFixed(0)+'"'
+      +' stroke="'+ol+'" stroke-width="1.5" opacity=".2"/>');
+  });
+
+  } // end floor if(!isEntrance)
+
+  // ── ROOM DETAILS (variety) ──
+  // Use a seeded variant so it's stable within one draw but changes between rooms
+  // variant is passed in as part of room string via roomVariant global
+  if(!isEnc && !isBoss && !isEntrance && !isPreBoss){
+    addRoomDetail(p, room, W, H, fL, fR, fT, fB, vpX, vpY, ol, flrC, wLC, isFork);
+  }
+
+  // Dust/dirt speckles on floor — always present, slightly different each room
+  addFloorDust(p, W, H, fB, fL, fR, vpX, vpY, ol);
+
+  // TORCH GLOWS + VIGNETTE — skip for entrance (has its own)
+  if(!isEntrance){
+  p.push('<rect width="'+W+'" height="'+H+'" fill="url(#tlg)"/>');
+  p.push('<rect width="'+W+'" height="'+H+'" fill="url(#trg)"/>');
+  // TORCHES
+  [[tLx,tY],[tRx,tY]].forEach(function(t){
+    var tx=t[0], ty=t[1];
+    p.push('<rect x="'+(tx-5)+'" y="'+(ty+8)+'" width="10" height="16" rx="4" fill="'+wLC+'" stroke="'+ol+'" stroke-width="2"/>');
+    p.push('<ellipse cx="'+tx+'" cy="'+ty+'" rx="8" ry="13" fill="#ff8c00" stroke="'+ol+'" stroke-width="2"/>');
+    p.push('<ellipse cx="'+tx+'" cy="'+(ty+2)+'" rx="4.5" ry="8" fill="#ffd700"/>');
+  });
+
+  // VIGNETTE
+  p.push('<rect width="'+W+'" height="'+H+'" fill="url(#vg)"/>');
+  } // end if(!isEntrance)
+  p.push('</svg>');
+  return p.join('');
+}
+
+// Room detail variants — small decorations for variety
+// Uses roomDetailSeed to pick variant, so same seed = same detail per visit
+var roomDetailSeed = 0;
+function pickDetail(){ roomDetailSeed++; return roomDetailSeed % 4; }
+
+function addRoomDetail(p, room, W, H, fL, fR, fT, fB, vpX, vpY, ol, flrC, wLC, isFork){
+  var d = currentDetailVariant; // set before draw() call
+  if(isFork){
+    // Fork details: something on the far wall
+    if(d===0){
+      // Skull carving on far wall centre
+      p.push('<circle cx="'+vpX+'" cy="'+(vpY-8)+'" r="8" fill="'+wLC+'" stroke="'+ol+'" stroke-width="1.5"/>');
+      p.push('<circle cx="'+(vpX-3)+'" cy="'+(vpY-10)+'" r="2.5" fill="'+ol+'"/>');
+      p.push('<circle cx="'+(vpX+3)+'" cy="'+(vpY-10)+'" r="2.5" fill="'+ol+'"/>');
+      p.push('<path d="M'+(vpX-3)+','+(vpY-3)+' Q'+vpX+','+(vpY)+' '+(vpX+3)+','+(vpY-3)+'" fill="none" stroke="'+ol+'" stroke-width="1.5"/>');
+    } else if(d===1){
+      // Crossed swords on wall
+      p.push('<line x1="'+(vpX-10)+'" y1="'+(fT+fH*0.2)+'" x2="'+(vpX+10)+'" y2="'+(fT+fH*0.8)+'" stroke="#c4a040" stroke-width="3" stroke-linecap="round"/>');
+      p.push('<line x1="'+(vpX+10)+'" y1="'+(fT+fH*0.2)+'" x2="'+(vpX-10)+'" y2="'+(fT+fH*0.8)+'" stroke="#c4a040" stroke-width="3" stroke-linecap="round"/>');
+    } else if(d===2){
+      // Torch sconce on far wall
+      p.push('<rect x="'+(vpX-3)+'" y="'+(vpY-5)+'" width="6" height="10" rx="2" fill="'+wLC+'" stroke="'+ol+'" stroke-width="1.5"/>');
+      p.push('<ellipse cx="'+vpX+'" cy="'+(vpY-8)+'" rx="5" ry="8" fill="#ff8c00" stroke="'+ol+'" stroke-width="1.5"/>');
+      p.push('<ellipse cx="'+vpX+'" cy="'+(vpY-7)+'" rx="2.5" ry="5" fill="#ffd700"/>');
+    }
+    // d===3: bare wall (no detail)
+  } else {
+    // Straight: details on left/right walls or floor
+    if(d===0){
+      // Carpet on floor — perspective trapezoid
+      var cy1=fB, cy2=H*0.92;
+      var t1=(cy1-H)/(fB-H), t2=(cy2-H)/(fB-H);
+      var cx1L=fL*t1+W*0.1*(1-t1), cx1R=W-(W-fR)*t1-W*0.1*(1-t1);
+      var cx2L=W*0.12, cx2R=W*0.88;
+      p.push('<path d="M'+cx1L.toFixed(0)+','+cy1.toFixed(0)
+        +' L'+cx1R.toFixed(0)+','+cy1.toFixed(0)
+        +' L'+cx2R.toFixed(0)+','+cy2.toFixed(0)
+        +' L'+cx2L.toFixed(0)+','+cy2.toFixed(0)+' Z"'
+        +' fill="#8b2a14" stroke="'+ol+'" stroke-width="2" opacity=".75"/>');
+      // Carpet border
+      p.push('<path d="M'+(cx1L+4).toFixed(0)+','+cy1.toFixed(0)
+        +' L'+(cx1R-4).toFixed(0)+','+cy1.toFixed(0)
+        +' L'+(cx2R-6).toFixed(0)+','+cy2.toFixed(0)
+        +' L'+(cx2L+6).toFixed(0)+','+cy2.toFixed(0)+' Z"'
+        +' fill="none" stroke="#c4a040" stroke-width="1.5" opacity=".7"/>');
+      // Diamond pattern centre
+      p.push('<path d="M'+vpX+','+(cy1+8)+' L'+(vpX+16)+','+(cy1+(cy2-cy1)*0.5)
+        +' L'+vpX+','+(cy2-8)+' L'+(vpX-16)+','+(cy1+(cy2-cy1)*0.5)+' Z"'
+        +' fill="none" stroke="#c4a040" stroke-width="1.5" opacity=".6"/>');
+    } else if(d===1){
+      // Picture frame on left wall
+      var pfy=H*0.38, pfx=fL*0.2, pfw=fL*0.45, pfh=fL*0.35;
+      p.push('<rect x="'+pfx.toFixed(0)+'" y="'+pfy.toFixed(0)+'" width="'+pfw.toFixed(0)+'" height="'+pfh.toFixed(0)+'"'
+        +' fill="#1a0e06" stroke="#c4a040" stroke-width="3"/>');
+      p.push('<rect x="'+(pfx+4).toFixed(0)+'" y="'+(pfy+4).toFixed(0)+'" width="'+(pfw-8).toFixed(0)+'" height="'+(pfh-8).toFixed(0)+'"'
+        +' fill="#2a1a0a" stroke="'+ol+'" stroke-width="1"/>');
+      // Simple skull in picture
+      p.push('<ellipse cx="'+(pfx+pfw/2).toFixed(0)+'" cy="'+(pfy+pfh*0.4).toFixed(0)+'" rx="'+(pfw*0.2).toFixed(0)+'" ry="'+(pfh*0.25).toFixed(0)+'" fill="#c4a040" opacity=".5"/>');
+    } else if(d===2){
+      // Small statue on right side — pedestal + simple figure
+      var sx=fR+(W-fR)*0.3, sy=fB;
+      var sbx=sx, sby=fB-4, sbw=16, sbh=8;
+      // Perspective-scale the statue based on position
+      p.push('<rect x="'+(sbx-sbw/2).toFixed(0)+'" y="'+sby.toFixed(0)+'" width="'+sbw+'" height="'+sbh+'"'
+        +' fill="'+wLC+'" stroke="'+ol+'" stroke-width="1.5"/>');
+      p.push('<ellipse cx="'+sbx.toFixed(0)+'" cy="'+(sby-12).toFixed(0)+'" rx="7" ry="9"'
+        +' fill="'+wLC+'" stroke="'+ol+'" stroke-width="1.5"/>');
+      p.push('<rect x="'+(sbx-4).toFixed(0)+'" y="'+(sby-22).toFixed(0)+'" width="8" height="12"'
+        +' fill="'+wLC+'" stroke="'+ol+'" stroke-width="1.5"/>');
+      // Glowing eyes on statue
+      p.push('<circle cx="'+(sbx-2)+'" cy="'+(sby-16)+'" r="1.5" fill="#ff8c00" opacity=".8"/>');
+      p.push('<circle cx="'+(sbx+2)+'" cy="'+(sby-16)+'" r="1.5" fill="#ff8c00" opacity=".8"/>');
+    }
+    // d===3: bare corridor (no detail)
+  }
+}
+
+function addFloorDust(p, W, H, fB, fL, fR, vpX, vpY, ol){
+  // Small dust speckles — deterministic positions that feel random
+  // Use 5-6 small dark ellipses scattered on the floor
+  var dustPos=[
+    [W*0.18, H*0.82, 4, 2],
+    [W*0.72, H*0.76, 5, 2.5],
+    [W*0.45, H*0.88, 3, 1.5],
+    [W*0.62, H*0.92, 6, 2.5],
+    [W*0.28, H*0.94, 4, 2],
+    [W*0.55, H*0.84, 3, 1.5],
+  ];
+  dustPos.forEach(function(d){
+    p.push('<ellipse cx="'+d[0].toFixed(0)+'" cy="'+d[1].toFixed(0)+'" rx="'+d[2]+'" ry="'+d[3]+'"'
+      +' fill="'+ol+'" opacity=".12"/>');
+  });
+  // A few small pebbles
+  p.push('<circle cx="'+(W*0.35).toFixed(0)+'" cy="'+(H*0.87).toFixed(0)+'" r="2" fill="'+ol+'" opacity=".15"/>');
+  p.push('<circle cx="'+(W*0.68).toFixed(0)+'" cy="'+(H*0.91).toFixed(0)+'" r="1.5" fill="'+ol+'" opacity=".12"/>');
+}
+
+// currentDetailVariant: set before each draw so room detail changes per visit
+var currentDetailVariant = 0;
+
+function resize(){
+  // no-op for SVG renderer
+  cW=0; cH=0;
+}
+window.addEventListener('resize', function(){ draw(currentRoom,1); });
+
+function draw(room, progress){
+  if(progress===undefined) progress=1;
+  currentRoom=room;
+  // Randomise detail variant each full draw (progress=1)
+  if(progress===1) currentDetailVariant=Math.floor(Math.random()*4);
+  var el=document.getElementById('dungeon');
+  el.innerHTML = makeDungeonSVG(room,progress)
+    + '<div id="creature-layer"><div id="cre"></div></div>'
+    + '<div id="nav-arrows"></div>';
+
+
+  document.getElementById('nav-arrows').addEventListener('click',function(e){
+    if(gPhase!=='walk'||animating) return;
+    var arrow=e.target.closest('[data-dir]');
+    if(!arrow) return;
+    hideNavArrows();
+    advance(arrow.dataset.dir);
+  });
+}
+
+function startTorchLoop(){ /* SVG is static, no flicker loop needed */ }
+
+function animWalk(toRoom, done){
+  animating=true;
+  var steps=8, current=0;
+  var tick=setInterval(function(){
+    current++;
+    draw(toRoom, current/steps);
+    if(current>=steps){ clearInterval(tick); animating=false; if(done)done(); }
+  }, 40);
+}
+
+// ════════════════════════════════════════
+// GAME FLOW
+// ════════════════════════════════════════
+function startGame(){
+  generateENC();
+  encIdx=0; step=0; spellLives=3; sylProgress=0;
+  activeSpell=[]; hasFork=false; animating=false;
+  showScreen('s-game');
+  gPhase='walk';
+  resize();
+  buildRuneBar();
+  currentRoom=RT.ENTRANCE;
+  draw(RT.ENTRANCE,1);
+  // Small delay ensures DOM is ready after innerHTML injection
+  setTimeout(function(){ showTapHint(); }, 50);
+  hideSpellPanel();
+  hideDirOverlay();
+  startTorchLoop();
+}
+
+function buildRuneBar(){
+  const rb=document.getElementById('rune-bar');rb.innerHTML='';
+  for(let i=0;i<5;i++){
+    const sl=document.createElement('div');sl.className='rs';sl.id='rs-'+i;
+    sl.style.setProperty('--c', ENC[i].col);
+    // Just show a question mark — monster SVG shown during encounter
+    const rs=document.createElement('div');rs.className='rs-s';rs.textContent='?';
+    sl.appendChild(rs);rb.appendChild(sl);
+  }
+}
+
+function earnRune(i){
+  const sl=document.getElementById('rs-'+i);if(!sl)return;
+  const col=ENC[i].col;
+  // Set --c var (used by CSS for border, glow, bg — all consistent)
+  sl.style.setProperty('--c', col);
+  // Remove any stale inline border that could override CSS
+  sl.style.borderColor='';
+  sl.style.boxShadow='';
+  sl.classList.add('earned');
+  sl.querySelector('.rs-s').textContent=ENC[i].syl;
+  sl.querySelector('.rs-s').style.color=col;
+  sl.style.animation='none';void sl.offsetWidth;
+  sl.style.animation='runeEarn .6s cubic-bezier(.34,1.56,.64,1)';
+  if(!document.getElementById('rkf')){const s=document.createElement('style');s.id='rkf';s.textContent='@keyframes runeEarn{0%{transform:scale(0) rotate(-20deg)}70%{transform:scale(1.25) rotate(8deg)}100%{transform:scale(1) rotate(0)}}';document.head.appendChild(s);}
+}
+
+
+
+// ── Walk / Navigation ──
+function pickStepRoom(s){
+  const opts=STEP_ROOMS[Math.min(s,STEP_ROOMS.length-1)];
+  return opts[Math.floor(Math.random()*opts.length)];
+}
+
+// ── SVG arrow paths ──
+const ARROW_SVG = {
+
+  // ↑ Straight forward — upward pointing arrow
+  fwd:`<svg class="nav-arrow fwd" data-dir="f" width="72" height="88" viewBox="0 0 72 88" xmlns="http://www.w3.org/2000/svg">
+    <path d="M36 6 L66 42 L48 42 L48 82 L24 82 L24 42 L6 42 Z"
+          fill="rgba(255,255,255,.92)"
+          stroke="rgba(255,255,255,.25)" stroke-width="2" stroke-linejoin="round"/>
+  </svg>`,
+
+  // ← Left arrow — pointing left
+  left:`<svg class="nav-arrow left" data-dir="l" width="88" height="72" viewBox="0 0 88 72" xmlns="http://www.w3.org/2000/svg">
+    <path d="M6 36 L42 6 L42 24 L82 24 L82 48 L42 48 L42 66 Z"
+          fill="rgba(255,255,255,.92)"
+          stroke="rgba(255,255,255,.25)" stroke-width="2" stroke-linejoin="round"/>
+  </svg>`,
+
+  // → Right arrow — pointing right
+  right:`<svg class="nav-arrow right" data-dir="r" width="88" height="72" viewBox="0 0 88 72" xmlns="http://www.w3.org/2000/svg">
+    <path d="M82 36 L46 6 L46 24 L6 24 L6 48 L46 48 L46 66 Z"
+          fill="rgba(255,255,255,.92)"
+          stroke="rgba(255,255,255,.25)" stroke-width="2" stroke-linejoin="round"/>
+  </svg>`
+};
+
+function showNavArrows(dirs){
+  hasFork = dirs.length > 1;
+  const wrap = document.getElementById('nav-arrows');
+  wrap.innerHTML = dirs.map(d => ARROW_SVG[d==='l'?'left':d==='r'?'right':'fwd']).join('');
+  wrap.classList.add('show');
+}
+function hideNavArrows(){
+  hasFork=false;
+  const wrap=document.getElementById('nav-arrows');
+  wrap.classList.remove('show');
+  // slight delay before clearing so fade-out plays
+  setTimeout(()=>{ if(!wrap.classList.contains('show')) wrap.innerHTML=''; },350);
+}
+
+// Keep old names as aliases for compatibility
+function showTapHint()  { showNavArrows(['f']); }
+function hideTapHint()  { hideNavArrows(); }
+function showDirChoice(dirs){ showNavArrows(dirs); }
+function hideDirOverlay(){ hideNavArrows(); }
+
+function handleDungeonClick(){
+  if(gPhase!=='walk'||animating)return;
+  if(hasFork)return;
+  advance();
+}
+
+function chooseDir(d){
+  if(gPhase!=='walk'||animating)return;
+  hideNavArrows();
+  advance(d);
+}
+
+function advance(dir){
+  hideNavArrows();
+  step++;
+
+  // How many walk steps before next encounter?
+  // First encounter (encIdx=0): only 1 step total
+  // Others: 2 steps
+  const stepsNeeded = (encIdx===0) ? 1 : 2;
+
+  if(step < stepsNeeded){
+    // Still walking — show a corridor room
+    const room = pickStepRoom(step-1);
+    const isForkRoom = (room===RT.FORK);
+    animWalk(room, ()=>{
+      if(isForkRoom){ showNavArrows(['l','r']); }
+      else          { showNavArrows(['f']); }
+    });
+  } else {
+    // Ready for next encounter or boss
+    step = 0;
+    const isBoss = (encIdx >= 5);
+
+    if(isBoss){
+      // Boss — go straight to boss room
+      animWalk(RT.BOSS, ()=>{ startBoss(); });
+    } else if(encIdx === 5){
+      // Should not happen but guard
+      animWalk(RT.BOSS, ()=>{ startBoss(); });
+    } else {
+      // Normal encounter
+      animWalk(RT.ENC, ()=>{ startEncounter(encIdx); });
+    }
+  }
+}
+
+// ── Encounter ──
+function startEncounter(i){
+  gPhase='encounter';
+  const enc=ENC[i];
+  showCreature(enc);
+  activeSpell=Array(5).fill(enc.syl);
+  currentRuneCol=enc.col;
+  sylProgress=0;spellLives=3;
+  buildSpellRow(activeSpell, enc.col);
+  unlockSyl(0, enc.col);
+  showSpellPanel();
+  document.getElementById('cast-btn').disabled=false;
+
+}
+
+function startBoss(){
+  gPhase='boss';
+  // ── Phase 1: quake the dungeon ──
+  const gw=document.getElementById('game-wrap');
+  gw.classList.add('boss-quake');
+  setTimeout(()=>gw.classList.remove('boss-quake'),700);
+
+  // ── Phase 2: lightning flashes ──
+  const bl=document.getElementById('boss-lightning');
+  [120,220,380].forEach(t=>setTimeout(()=>{
+    bl.classList.remove('flash');void bl.offsetWidth;bl.classList.add('flash');
+  },t));
+
+  // ── Phase 3: show boss intro overlay ──
+  setTimeout(()=>{
+    const intro=document.getElementById('boss-intro');
+    const preview=document.getElementById('boss-preview');
+    const nameEl=document.getElementById('boss-name-text');
+    const tapEl=document.getElementById('boss-tap');
+    const ring=document.getElementById('boss-ring');
+
+    // Inject boss SVG
+    preview.innerHTML=currentBoss.svg;
+    nameEl.textContent=currentBoss.name;
+
+    // Reset animation classes
+    preview.className=''; nameEl.className=''; tapEl.className=''; ring.className='';
+    void preview.offsetWidth;
+
+    // Show overlay
+    intro.classList.add('show');
+
+    // Staggered reveals
+    requestAnimationFrame(()=>{
+      ring.classList.add('active');
+      preview.classList.add('show');
+      setTimeout(()=>nameEl.classList.add('show'),900);
+      setTimeout(()=>tapEl.classList.add('show'),1400);
+    });
+  },500);
+
+  // Pre-build boss fight data (ready when player dismisses)
+  activeSpell=ENC.map(e=>e.syl);
+  sylProgress=0;spellLives=3;
+}
+
+function dismissBossIntro(){
+  const intro=document.getElementById('boss-intro');
+  intro.style.transition='opacity .4s';
+  intro.style.opacity='0';
+  setTimeout(()=>{
+    intro.classList.remove('show');
+    intro.style.opacity='';intro.style.transition='';
+    document.getElementById('boss-ring').className='';
+    // Now start the actual boss fight
+    showCreature(currentBoss,'boss');
+    buildSpellRow(activeSpell, null, true);
+    updateBossRunes(0);
+    unlockSyl(0, ENC[0].col);
+    showSpellPanel();
+
+    document.getElementById('cast-btn').disabled=false;
+  },400);
+}
+
+function showCreature(monster, type='normal'){
+  const c=document.getElementById('cre');
+  if(!c) return;
+  c.style.animation='none';c.style.opacity='1';
+  // Support both SVG monster objects and legacy emoji strings
+  if(monster && monster.svg) {
+    c.innerHTML = monster.svg;
+    c.style.fontSize='';
+  } else {
+    c.innerHTML='';
+    c.textContent = monster;
+  }
+  void c.offsetWidth;
+  if(type==='boss'){
+    c.className='cre-boss-pulse';
+    c.style.width='clamp(150px,42vw,260px)';
+    c.style.filter='drop-shadow(0 4px 24px rgba(255,60,0,.6))';
+  } else {
+    c.className='';
+    c.style.width='clamp(120px,32vw,200px)';
+    c.style.filter='drop-shadow(0 8px 14px rgba(0,0,0,.5))';
+  }
+}
+
+function updateBossRunes(idx){
+  for(let i=0;i<5;i++){
+    const sl=document.getElementById('rs-'+i);if(!sl)continue;
+    sl.classList.remove('boss-now','boss-done');
+    if(i<idx){
+      sl.classList.add('boss-done');
+    } else if(i===idx){
+      sl.classList.add('boss-now');
+      // Pulse in the rune's own color
+      const col=ENC[i].col;
+      sl.style.setProperty('--bnow-col',col);
+    }
+  }
+}
+
+// ── Spell building ──
+function buildSpellRow(syls, col=null, bossMode=false){
+  const row=document.getElementById('syl-row');row.innerHTML='';
+  for(let i=0;i<syls.length;i++){
+    if(i>0){const d=document.createElement('span');d.className='sy-dot';d.id='syd-'+i;d.textContent='·';row.appendChild(d);}
+    const sl=document.createElement('div');sl.className='sy locked';sl.id='sy-'+i;
+    // store per-slot color for boss mode
+    const slotCol=bossMode?ENC[i].col:(col||'#f5c030');
+    sl.dataset.col=slotCol;
+    const lb=document.createElement('span');lb.className='sy-l';lb.textContent=syls[i];
+    sl.appendChild(lb);row.appendChild(sl);
+  }
+}
+
+function unlockSyl(idx, col){
+  const sl=document.getElementById('sy-'+idx);if(!sl)return;
+  const c=col||sl.dataset.col||'#f5c030';
+  sl.className='sy active';
+  sl.style.setProperty('--rc',c);
+  void sl.offsetWidth;
+  if(!document.getElementById('suKF')){const s=document.createElement('style');s.id='suKF';s.textContent='.su-pop{animation:supop .5s cubic-bezier(.34,1.56,.64,1) both}@keyframes supop{from{transform:scale(.2) rotate(-15deg);opacity:0;filter:blur(6px)}70%{transform:scale(1.15) rotate(4deg)}to{transform:scale(1) rotate(0);opacity:1}}';document.head.appendChild(s);}
+  sl.classList.add('su-pop');setTimeout(()=>sl.classList.remove('su-pop'),550);
+}
+
+// ── Cast ──
+function handleCast(){
+  if(!noMic&&speechOk){
+    if(listening)return;
+    // Recreate each time — required on iOS Safari
+    initSpeech();
+    lastInterim=[];
+    document.getElementById('cast-btn').disabled=true;
+    try{rec.start();}catch(e){document.getElementById('cast-btn').disabled=false;onCorrect();}
+  } else {
+    onCorrect();
+  }
+}
+
+function checkSpeech(alts){
+  const flat=activeSpell.slice(0,sylProgress+1).join('').toUpperCase();
+  const spaced=activeSpell.slice(0,sylProgress+1).join(' ').toUpperCase();
+  const last=activeSpell[sylProgress].toUpperCase();
+  let ok=false;
+  for(const r of alts){
+    const c=r.replace(/[\s\-.]/g,'').toUpperCase();
+    if(c===flat||r.toUpperCase()===spaced||c===last){ok=true;break;}
+    if(flat.length<=6&&(c.includes(flat)||(flat.includes(c)&&c.length>=2))){ok=true;break;}
+  }
+  ok?onCorrect():onWrong();
+}
+
+function onCorrect(){
+  const sl=document.getElementById('sy-'+sylProgress);
+  if(!sl) return;
+  // Brief white flash, then snap to solved (rune color)
+  sl.className='sy sy-solving';void sl.offsetWidth;
+  setTimeout(()=>{ const _sl=document.getElementById('sy-'+( sylProgress-0));if(_sl)_sl.className='sy solved'; },180);
+  if(sylProgress>0){const d=document.getElementById('syd-'+sylProgress);if(d)d.classList.add('lit');}
+  spawnSparks(sl);
+  doFlash('teal');
+  if(gPhase==='boss')updateBossRunes(sylProgress+1);
+  sylProgress++;
+  if(sylProgress>=activeSpell.length){
+    setTimeout(()=>{ if(gPhase==='encounter')finishEncounter();else finishBoss(); },380);
+  } else {
+    const nextCol=gPhase==='boss'?ENC[sylProgress].col:currentRuneCol;
+    setTimeout(()=>{unlockSyl(sylProgress,nextCol);document.getElementById('cast-btn').disabled=false;},300);
+
+  }
+}
+
+function onWrong(){
+  doFlash('red');
+  // Screen shake
+  shakeScreen();
+  // Shake current syl
+  const sl=document.getElementById('sy-'+sylProgress);
+  if(!sl) return;
+  sl.className='sy wrong-flash';
+  const _syid='sy-'+sylProgress; setTimeout(()=>{ const _sl=document.getElementById(_syid);if(_sl)_sl.className='sy active'; },500);
+  // Creature taunts
+  const cre=document.getElementById('cre');
+  if(cre){cre.className='cre-taunt';setTimeout(()=>{if(document.getElementById('cre'))document.getElementById('cre').className='';},600);}
+  document.getElementById('cast-btn').disabled=false;
+}
+
+function finishEncounter(){
+  const c0=document.getElementById('cre');if(c0)c0.className='';
+  earnRune(encIdx);
+  encIdx++;
+  hideSpellPanel();
+  gPhase='walk';
+  step=0;
+  if(encIdx>=5){
+    // All 5 monsters beaten — show preboss door room first
+    animWalk(RT.PREBOSS, ()=>{ showNavArrows(['f']); });
+  } else {
+    const room=pickStepRoom(0);
+    animWalk(room,()=>showTapHint());
+  }
+}
+
+function finishBoss(){
+  const c0=document.getElementById('cre');if(c0)c0.className='';
+  for(let i=0;i<5;i++){const sl=document.getElementById('rs-'+i);if(sl){sl.classList.remove('boss-now');sl.classList.add('boss-done');}}
+  setTimeout(showWin,800);
+}
+
+// ── Win ──
+function showWin(){
+  gPhase='win';
+  const wr=document.getElementById('w-runes');wr.innerHTML='';
+  ENC.forEach((enc,i)=>{
+    const sl=document.createElement('div');sl.className='w-rune';sl.style.setProperty('--i',i);
+    sl.style.borderColor=enc.col;sl.style.boxShadow=`0 0 16px ${enc.col}88`;sl.style.background=enc.col+'18';
+    const e=document.createElement('div');e.className='wr-e';
+    if(enc.svg){e.innerHTML=enc.svg;e.style.width='36px';e.style.height='36px';}
+    else e.textContent=enc.e||'?';
+    const s=document.createElement('div');s.className='wr-s';s.style.color=enc.col;s.textContent=enc.syl;
+    sl.appendChild(e);sl.appendChild(s);wr.appendChild(sl);
+  });
+  showScreen('s-win');spawnConfetti();
+}
+
+// ── Helpers ──
+function shakeScreen(){
+  const gw=document.getElementById('game-wrap');
+  gw.classList.remove('screen-shake');void gw.offsetWidth;
+  gw.classList.add('screen-shake');
+  setTimeout(()=>gw.classList.remove('screen-shake'),500);
+}
+function exitDungeon(){
+  // Reset state and go back to title
+  gPhase='title';
+  animating=false;
+  if(rec&&listening){ try{rec.stop();}catch(e){} }
+  listening=false;
+  hideSpellPanel();
+  showScreen('s-title');
+}
+
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
+function showSpellPanel(){document.getElementById('spell-panel').classList.add('show');}
+function hideSpellPanel(){document.getElementById('spell-panel').classList.remove('show');}
+function doFlash(t){const f=document.getElementById('flash-overlay');f.className=t;void f.offsetWidth;setTimeout(()=>f.className='',260);}
+
+function spawnSparks(el){
+  if(!el)return;
+  const r=el.getBoundingClientRect();const cx=r.left+r.width/2,cy=r.top+r.height/2;
+  const cols=['#20d4b8','#f5c030','#fff','#aaffee','#ffee66'];
+  for(let i=0;i<12;i++){
+    const sp=document.createElement('div');sp.className='spark';
+    const sz=Math.random()*6+3,angle=(Math.PI*2/12)*i+Math.random()*.4,dist=32+Math.random()*44;
+    sp.style.cssText=`width:${sz}px;height:${sz}px;left:${cx-sz/2}px;top:${cy-sz/2}px;background:${cols[i%5]};box-shadow:0 0 5px ${cols[i%5]};--tx:${Math.cos(angle)*dist}px;--ty:${Math.sin(angle)*dist}px;animation-duration:.55s;animation-delay:${Math.random()*.08}s;`;
+    document.body.appendChild(sp);setTimeout(()=>sp.remove(),700);
+  }
+}
+
+function spawnConfetti(){
+  const cols=['#f5c030','#ff6b9d','#54a0ff','#3ddc84','#ff9f43','#cc88ff','#20d4b8'];
+  for(let i=0;i<90;i++){
+    const el=document.createElement('div');el.className='confetti';
+    const w=Math.random()*10+4,h=Math.random()*10+4;
+    el.style.cssText=`left:${Math.random()*100}vw;top:-14px;width:${w}px;height:${h}px;background:${cols[i%7]};border-radius:${Math.random()>.5?'50%':'3px'};animation-duration:${1.4+Math.random()*2}s;animation-delay:${Math.random()*.7}s;`;
+    document.body.appendChild(el);setTimeout(()=>el.remove(),4000);
+  }
+}
+
+// ════════════════════════════════════════
+// SPEECH
+// ════════════════════════════════════════
+function initSpeechIfEnabled(){
+  if(activeSettings.mic) initSpeech();
+  else enableNoMic();
+}
+function initSpeech(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){enableNoMic();return;}
+  speechOk=true;
+  var isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent);
+
+  function makeRec(){
+    var r=new SR();
+    r.lang='de-DE';
+    r.continuous=false;
+    r.maxAlternatives=6;
+    // iOS workaround: interimResults=true so we get faster partial results
+    r.interimResults=isIOS;
+
+    r.onstart=function(){
+      listening=true;
+      document.getElementById('mbars').classList.add('on');
+      // iOS safety timeout: if no result after 6s, stop and re-enable
+      if(isIOS){
+        clearTimeout(iosTimeout);
+        iosTimeout=setTimeout(function(){
+          if(listening){ try{r.stop();}catch(e){} }
+        },6000);
+      }
+    };
+
+    r.onresult=function(e){
+      clearTimeout(iosTimeout);
+      listening=false;
+      document.getElementById('mbars').classList.remove('on');
+      // Collect all alternatives across all results (interim + final)
+      var candidates=[];
+      for(var ri=0;ri<e.results.length;ri++){
+        for(var ai=0;ai<e.results[ri].length;ai++){
+          candidates.push(e.results[ri][ai].transcript.toUpperCase().trim());
+        }
+      }
+      // On iOS with interimResults, wait for final result if possible
+      if(isIOS && !e.results[e.results.length-1].isFinal){
+        // Still interim — keep listening, but note the candidate
+        lastInterim=candidates;
+        return;
+      }
+      checkSpeech(candidates.length?candidates:(lastInterim||[]));
+      lastInterim=[];
+    };
+
+    r.onerror=function(e){
+      clearTimeout(iosTimeout);
+      listening=false;
+      document.getElementById('mbars').classList.remove('on');
+      document.getElementById('cast-btn').disabled=false;
+      if(e.error==='not-allowed'||e.error==='service-not-allowed'){
+        enableNoMic();
+      } else if(e.error==='no-speech'||e.error==='audio-capture'){
+        doFlash('red');
+      } else {
+        doFlash('red');
+      }
+    };
+
+    r.onend=function(){
+      clearTimeout(iosTimeout);
+      listening=false;
+      document.getElementById('mbars').classList.remove('on');
+      document.getElementById('cast-btn').disabled=false;
+      // iOS sometimes fires onend before onresult — use interim if available
+      if(isIOS && lastInterim && lastInterim.length){
+        checkSpeech(lastInterim);
+        lastInterim=[];
+      }
+    };
+    return r;
+  }
+
+  rec=makeRec();
+}
+var iosTimeout=null;
+var lastInterim=[];
+function enableNoMic(){noMic=true;speechOk=false;document.getElementById('btn-icon').textContent='👆';document.getElementById('mic-icon').textContent='🔇';}
+function toggleMic(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(noMic&&SR){noMic=false;speechOk=true;document.getElementById('btn-icon').textContent='🪄';document.getElementById('mic-icon').textContent='🎙';}
+  else{noMic=true;speechOk=false;document.getElementById('btn-icon').textContent='👆';document.getElementById('mic-icon').textContent='🔇';}
+}
+
+// ════════════════════════════════════════
+// BOOT
+// ════════════════════════════════════════
+initSpeech();
+resize();
+draw(RT.HALL,1);
+</script>
+</body>
+</html>
