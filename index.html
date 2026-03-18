@@ -4,7 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Dungeon der Runen</title>
-<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Cinzel:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* Cinzel-like fallbacks for sandbox/offline — Google Fonts loaded async below */
+@import url('https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Cinzel:wght@400;600&display=swap');
+</style>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 html{height:100%;height:-webkit-fill-available;}
@@ -78,7 +81,7 @@ body{
 #creature-layer{position:absolute;inset:0;pointer-events:none;}
 #cre{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:clamp(120px,32vw,200px);height:auto;line-height:1;opacity:0;transition:opacity .3s;}
 .cre-float{animation:cfloat 2.6s ease-in-out infinite;}
-@keyframes cfloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+@keyframes cfloat{0%,100%{transform:translate(-50%,-50%) translateY(0)}50%{transform:translate(-50%,-50%) translateY(-10px)}}
 .cre-taunt{animation:ctaunt .7s ease-in-out!important;}
 @keyframes ctaunt{
   0%  {transform:translate(-50%,-50%) scale(1)}
@@ -439,7 +442,7 @@ body{
 <div class="screen" id="s-game">
 <div id="game-wrap">
   <div id="hud">
-    <div id="mic-btn"><span id="mic-icon">🎙</span></div>
+    <div id="mic-btn" style="display:none"><span id="mic-icon">🎙</span></div>
     <div id="exit-btn" onclick="exitDungeon()">✕</div>
   </div>
   <div id="rune-bar"></div>
@@ -1130,13 +1133,30 @@ function renderChipGroup(containerId, all, active, onToggle){
 
 function settingsMicToggle(on){
   activeSettings.mic = on;
+  saveSettings();
   if(on){
-    initSpeech(); // sets MIC_STATE='ready' or 'unavailable'
+    // Checkbox click IS a user gesture — request permission now
+    const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+    if(!SR){ MIC_STATE='unavailable'; updateMicUI(); return; }
+    MIC_STATE='ready';
+    updateMicUI();
+    // Trigger a test start to prompt permission dialog
+    try{
+      var testRec = new SR();
+      testRec.lang='de-DE';
+      testRec.onstart = function(){ try{testRec.stop();}catch(e){} };
+      testRec.onerror = function(e){
+        if(e.error==='not-allowed'||e.error==='service-not-allowed'){
+          enableNoMic();
+        }
+      };
+      testRec.onend = function(){};
+      testRec.start();
+    } catch(e){ enableNoMic(); }
   } else {
     MIC_STATE='off';
     updateMicUI();
   }
-  saveSettings();
 }
 
 // Monster colors palette - each encounter gets a unique color
@@ -1877,8 +1897,18 @@ function advance(dir){
   // Others: 2 steps
   const stepsNeeded = (encIdx===0) ? 1 : 2;
 
-  if(step < stepsNeeded){
-    // Still walking — show a corridor room
+  if(encIdx >= 5){
+    // Post-last-monster walk: corridor → preboss → boss
+    if(currentRoom === RT.PREBOSS){
+      // Tapped on preboss door → start boss
+      step = 0;
+      animWalk(RT.BOSS, ()=>{ startBoss(); });
+    } else {
+      // Currently in corridor → show preboss door
+      animWalk(RT.PREBOSS, ()=>{ showNavArrows(['f']); });
+    }
+  } else if(step < stepsNeeded){
+    // Still walking to next encounter
     const room = pickStepRoom(step-1);
     const isForkRoom = (room===RT.FORK);
     animWalk(room, ()=>{
@@ -1886,20 +1916,9 @@ function advance(dir){
       else          { showNavArrows(['f']); }
     });
   } else {
-    // Ready for next encounter or boss
+    // Reached encounter
     step = 0;
-    const isBoss = (encIdx >= 5);
-
-    if(isBoss){
-      // Boss — go straight to boss room
-      animWalk(RT.BOSS, ()=>{ startBoss(); });
-    } else if(encIdx === 5){
-      // Should not happen but guard
-      animWalk(RT.BOSS, ()=>{ startBoss(); });
-    } else {
-      // Normal encounter
-      animWalk(RT.ENC, ()=>{ startEncounter(encIdx); });
-    }
+    animWalk(RT.ENC, ()=>{ startEncounter(encIdx); });
   }
 }
 
@@ -1998,7 +2017,7 @@ function showCreature(monster, type='normal'){
   void c.offsetWidth;
   if(type==='boss'){
     c.className='cre-boss-pulse';
-    c.style.width='clamp(150px,42vw,260px)';
+    c.style.width='clamp(180px,52vw,320px)';
     c.style.filter='drop-shadow(0 4px 24px rgba(255,60,0,.6))';
   } else {
     c.className='';
@@ -2087,7 +2106,11 @@ function castPressStart(){
   startSpellParticles();
   if(MIC_STATE==='ready'){
     if(listening) return;
+    // rec is created fresh each cast
+    const _SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+    if(!_SR){ MIC_STATE='unavailable'; updateMicUI(); btn.classList.remove('recording'); stopSpellParticles(); tapResolve(); return; }
     initSpeech();
+    if(!rec){ btn.classList.remove('recording'); stopSpellParticles(); tapResolve(); return; }
     lastInterim=[];
     btn.disabled=true;
     try{ rec.start(); }
@@ -2282,15 +2305,24 @@ function spawnConfetti(){
 // ════════════════════════════════════════
 // SPEECH
 // ════════════════════════════════════════
+// Called once at boot and when settings open
+// Just checks API availability — no permission request yet
 function initSpeechIfEnabled(){
-  if(activeSettings.mic) initSpeech();
-  else enableNoMic();
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR){
+    MIC_STATE = 'unavailable';
+  } else if(activeSettings.mic){
+    MIC_STATE = 'ready'; // permission will be confirmed on first cast
+  } else {
+    MIC_STATE = 'off';
+  }
+  updateMicUI();
 }
 function initSpeech(){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SR){enableNoMic();return;}
-  MIC_STATE='ready';
-  updateMicUI();
+  if(!SR){ MIC_STATE='unavailable'; updateMicUI(); return; }
+  // Don't change MIC_STATE here — it's already 'ready' from toggle
+  // Permission will be granted/denied when rec.start() fires
   var isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent);
 
   function makeRec(){
@@ -2374,20 +2406,25 @@ function updateMicUI(){
   var st  = document.getElementById('mic-status-label');
   if(MIC_STATE==='ready'){
     if(mi)  mi.textContent  = '🎙';
-    if(tog) tog.checked     = true;
+    if(tog){ tog.checked = true;  tog.disabled = false; }
     if(st)  { st.textContent='Spracherkennung aktiv'; st.style.color='rgba(100,220,100,.7)'; }
   } else if(MIC_STATE==='unavailable'){
     if(mi)  mi.textContent  = '🚫';
-    if(tog) tog.checked     = false;
-    if(tog) tog.disabled    = true;
+    if(tog){ tog.checked = false; tog.disabled = true; }
     if(st)  { st.textContent='Nicht verfügbar (Browser)'; st.style.color='rgba(220,100,100,.7)'; }
   } else { // off
     if(mi)  mi.textContent  = '🔇';
-    if(tog) tog.checked     = false;
+    if(tog){ tog.checked = false; tog.disabled = false; }
     if(st)  { st.textContent='Spracherkennung aus'; st.style.color='rgba(200,160,80,.4)'; }
   }
 }
-function enableNoMic(){ MIC_STATE='unavailable'; updateMicUI(); }
+function enableNoMic(){
+  // Permission denied or error — mark unavailable and disable toggle
+  MIC_STATE='unavailable';
+  activeSettings.mic=false;
+  saveSettings();
+  updateMicUI();
+}
 function toggleMic(){
   // mic-btn in HUD now just shows mic status, not interactive
   // mic is controlled via Settings panel
